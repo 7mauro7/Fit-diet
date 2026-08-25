@@ -23,7 +23,7 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;}
-  body{padding-bottom:calc(156px + env(safe-area-inset-bottom, 0px));}
+  body{padding-bottom:calc(110px + var(--switcher-h, 46px) + env(safe-area-inset-bottom, 0px));}
   h1,h2,h3{font-family:'Oswald',sans-serif;margin:0;letter-spacing:0.01em;}
   .app{max-width:640px;margin:0 auto;padding:0 14px;}
 
@@ -89,7 +89,7 @@
   .notes-box ul{margin:0; padding-left:16px; font-size:12.5px; color:var(--text); line-height:1.55;}
   .notes-box li{margin-bottom:6px;}
 
-  .bar{position:fixed; bottom:calc(46px + env(safe-area-inset-bottom, 0px)); left:0; right:0; background:linear-gradient(0deg, var(--bg) 60%, transparent); padding:18px 14px 14px; z-index:30;}
+  .bar{position:fixed; bottom:var(--switcher-h, 46px); left:0; right:0; background:linear-gradient(0deg, var(--bg) 60%, transparent); padding:18px 14px 14px; z-index:30;}
   #app-switcher-bottom{position:fixed; left:0; right:0; bottom:0; z-index:999; display:flex; font-family:'Inter',sans-serif; box-shadow:0 -1px 6px rgba(0,0,0,.4); padding-bottom:env(safe-area-inset-bottom, 0px);}
   #app-switcher-bottom button{flex:1; padding:12px 0; border:none; font-weight:700; font-size:13px; font-family:'Inter',sans-serif;}
   .barinner{max-width:640px; margin:0 auto; display:flex; gap:10px;}
@@ -953,6 +953,9 @@ render();
   <button onclick="location.href='index.html'" style="background:#16243d;color:#8ea0bf;">🍽 Dieta</button>
   <button onclick="location.href='palestra.html'" style="background:#ffcc33;color:#101a2c;">🏋 Palestra</button>
 </div>
+<script>
+  document.documentElement.style.setProperty('--switcher-h', document.getElementById('app-switcher-bottom').offsetHeight + 'px');
+</script>
 
 </body>
 </html>
