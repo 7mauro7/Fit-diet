@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Diario" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Diario Alimentare</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body, #root { height: 100%; margin: 0; background: #EFF3EC; }
+    body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+  </style>
+</head>
+<body>
+  <div id="app-switcher" style="position:sticky;top:0;z-index:999;display:flex;font-family:-apple-system,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.15);">
+    <button onclick="location.href='index.html'" style="flex:1;padding:11px 0;background:#1F5C52;color:#fff;border:none;font-weight:700;font-size:13px;">🍽 Dieta</button>
+    <button onclick="location.href='palestra.html'" style="flex:1;padding:11px 0;background:#EFF3EC;color:#1F5C52;border:none;font-weight:700;font-size:13px;">🏋 Palestra</button>
+  </div>
+  <div id="root"></div>
+  <script src="bundle.js"></script>
+</body>
+</html>
