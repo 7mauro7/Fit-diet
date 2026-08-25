@@ -22,14 +22,18 @@
       background: #fff;
     }
     #app-switcher-bottom button{ flex:1; padding:12px 0; border:none; font-weight:700; font-size:13px; }
-    .diario-app{
-      height: calc(100vh - 46px - env(safe-area-inset-bottom, 0px)) !important;
-      min-height: calc(100vh - 46px - env(safe-area-inset-bottom, 0px)) !important;
-    }
   </style>
 </head>
 <body>
   <div id="root"></div>
+  <script>
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;bottom:0;left:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none;';
+    document.body.appendChild(probe);
+    var safeBottom = probe.offsetHeight || 0;
+    document.body.removeChild(probe);
+    window.__EXTRA_BOTTOM_INSET = 46 + safeBottom;
+  </script>
   <script src="bundle.js"></script>
   <div id="app-switcher-bottom">
     <button onclick="location.href='index.html'" style="background:#1F5C52;color:#fff;">🍽 Dieta</button>
