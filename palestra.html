@@ -1,36 +1,958 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Palestra" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <link rel="apple-touch-icon" href="icon-jellyroger-180.png" />
-  <link rel="icon" type="image/png" href="icon-jellyroger-32.png" />
-  <title>Scheda Allenamento</title>
-  <style>
-    html, body { height: 100%; margin: 0; background: #0d1626; overflow: hidden; }
-    #app-frame { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; border: none; }
-    #app-switcher-bottom{
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 999;
-      display: flex; font-family: 'Inter', -apple-system, sans-serif;
-      box-shadow: 0 -1px 6px rgba(0,0,0,.4);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    #app-switcher-bottom button{ flex:1; padding:12px 0; border:none; font-weight:700; font-size:13px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Palestra">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-jellyroger-180.png">
+<link rel="icon" type="image/png" href="icon-jellyroger-32.png">
+<title>Scheda Allenamento — Mauro Spaggiari</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0d1626; --bg2:#111d33; --surface:#16243d; --surface2:#1c2e4c;
+    --line: rgba(255,255,255,0.08); --yellow:#ffcc33; --yellow-dim: rgba(255,204,51,0.15);
+    --blue:#4fd6ff; --text:#eef3fb; --muted:#8ea0bf;
+    --b1:#4fd6ff; --b2:#7cffb2; --b3:#ffcc33; --b4:#ff8a5c;
+    --green:#7cffb2; --orange:#ff8a5c; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;}
+  body{padding-bottom:calc(168px + env(safe-area-inset-bottom, 0px));}
+  h1,h2,h3{font-family:'Oswald',sans-serif;margin:0;letter-spacing:0.01em;}
+  .app{max-width:640px;margin:0 auto;padding:0 14px;}
+
+  header.top{background:linear-gradient(160deg, var(--bg2), #0a1220 85%); padding:22px 14px 16px; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:20;}
+  .brand{display:flex; align-items:baseline; justify-content:space-between; max-width:640px; margin:0 auto;}
+  .brand .word{font-family:'Archivo Black',sans-serif; font-size:15px; letter-spacing:0.06em; color:var(--yellow);}
+  .brand .sub{font-size:10px; color:var(--muted); letter-spacing:0.18em; text-transform:uppercase;}
+  .athlete{max-width:640px;margin:8px auto 0; font-size:13px; color:var(--muted); display:flex; justify-content:space-between; align-items:center;}
+  .athlete b{color:var(--text);}
+  .gear{background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:5px 9px; font-size:12px;}
+
+  nav.days{display:flex; gap:8px; max-width:640px; margin:14px auto 0; padding:0 14px 0;}
+  .day-btn{flex:1; padding:10px 0; text-align:center; border-radius:10px; background:var(--surface); border:1px solid var(--line); color:var(--muted); font-family:'Oswald',sans-serif; font-weight:600; font-size:14px; cursor:pointer;}
+  .day-btn.active{background:var(--yellow); color:#101a2c; border-color:var(--yellow);}
+
+  .view-toggle{display:flex; gap:8px; margin:12px auto 0; max-width:640px; padding:0 14px;}
+  .view-toggle button{flex:1; padding:8px 0; border-radius:20px; border:1px solid var(--line); background:transparent; color:var(--muted); font-size:12.5px; font-weight:600; letter-spacing:0.03em;}
+  .view-toggle button.active{background:var(--surface2); color:var(--yellow); border-color:var(--yellow-dim);}
+
+  .weekstrip{display:flex; gap:6px; overflow-x:auto; padding:14px 14px 4px; scrollbar-width:none;}
+  .weekstrip::-webkit-scrollbar{display:none;}
+  .wk{flex:0 0 auto; width:40px; height:44px; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--surface); border:1px solid var(--line); font-size:13px; font-weight:700; color:var(--text); cursor:pointer; position:relative;}
+  .wk small{font-size:8px; color:var(--muted); font-weight:600; margin-top:1px;}
+  .wk.active{outline:2px solid var(--yellow); background:var(--surface2);}
+  .wk .dot{position:absolute; top:4px; right:4px; width:6px; height:6px; border-radius:50%;}
+
+  .blocco-banner{margin:8px 14px 0; padding:10px 12px; border-radius:12px; background:var(--surface); border:1px solid var(--line); display:flex; align-items:center; gap:10px; font-size:12.5px;}
+  .blocco-banner .chip{padding:3px 9px; border-radius:20px; font-family:'Oswald',sans-serif; font-weight:700; font-size:12px; color:#0d1626;}
+  .blocco-banner .desc{color:var(--muted); flex:1;}
+
+  .daytitle{padding:16px 14px 4px;}
+  .daytitle h2{font-size:19px; color:var(--text);}
+  .daytitle .foc{font-size:12.5px; color:var(--muted); margin-top:2px;}
+  .group-label{margin:18px 14px 8px; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--blue); font-weight:700;}
+
+  .exercise{margin:0 14px 12px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;}
+  .ex-head{padding:12px 14px 10px; display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
+  .ex-name{font-family:'Oswald',sans-serif; font-weight:600; font-size:15px; line-height:1.25;}
+  .ex-note{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .ex-target{flex:0 0 auto; text-align:right; font-size:11px; color:var(--yellow); font-weight:700; white-space:nowrap;}
+  .ex-target .rec{display:block; color:var(--muted); font-weight:500; margin-top:2px;}
+
+  .sets{padding:0 10px 10px;}
+  .set-row{display:flex; align-items:center; gap:6px; padding:6px 4px; flex-wrap:wrap;}
+  .set-row .idx{width:18px; text-align:center; font-size:12px; color:var(--muted); font-weight:700;}
+  .set-row input{flex:1; min-width:0; background:var(--bg2); border:1px solid var(--line); border-radius:9px; color:var(--text); font-size:16px; padding:9px 8px; text-align:center; font-family:'Inter',sans-serif;}
+  .set-row input:focus{outline:none; border-color:var(--yellow);}
+  .set-row .unit{font-size:10px; color:var(--muted); width:22px;}
+  .set-row .band-toggle{flex:0 0 auto; width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:var(--bg2); color:var(--muted); font-size:14px; line-height:1;}
+  .set-row .band-toggle.active{border-color:var(--yellow); color:var(--yellow);}
+  .set-row .rm{flex:0 0 auto; width:26px; height:26px; border-radius:50%; border:1px solid var(--line); background:transparent; color:var(--muted); font-size:13px; line-height:1;}
+  .band-row{width:100%; display:none; gap:6px; padding:2px 4px 4px 28px; flex-wrap:wrap;}
+  .band-row.open{display:flex;}
+  .band-chip{padding:5px 10px; border-radius:16px; font-size:11px; font-weight:600; border:1.5px solid var(--line); background:var(--bg2); color:var(--muted); cursor:pointer;}
+  .band-chip[data-color="azzurro"].selected{background:#4fd6ff; border-color:#4fd6ff; color:#0d1626;}
+  .band-chip[data-color="verde"].selected{background:#7cffb2; border-color:#7cffb2; color:#0d1626;}
+  .band-chip[data-color="giallo"].selected{background:#ffcc33; border-color:#ffcc33; color:#0d1626;}
+  .band-chip[data-color="arancione"].selected{background:#ff8a5c; border-color:#ff8a5c; color:#0d1626;}
+  .add-set{margin:2px 4px 6px; width:calc(100% - 8px); padding:8px; border-radius:9px; border:1px dashed var(--line); background:transparent; color:var(--muted); font-size:12px; font-weight:600;}
+
+  .notes-box{margin:6px 14px 20px; padding:12px 14px; background:var(--surface2); border-radius:12px; border:1px solid var(--line);}
+  .notes-box h3{font-size:11px; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;}
+  .notes-box ul{margin:0; padding-left:16px; font-size:12.5px; color:var(--text); line-height:1.55;}
+  .notes-box li{margin-bottom:6px;}
+
+  .bar{position:fixed; bottom:calc(58px + env(safe-area-inset-bottom, 0px)); left:0; right:0; background:linear-gradient(0deg, var(--bg) 60%, transparent); padding:18px 14px 14px; z-index:30;}
+  #app-switcher-bottom{position:fixed; left:0; right:0; bottom:0; z-index:999; display:flex; font-family:'Inter',sans-serif; box-shadow:0 -1px 6px rgba(0,0,0,.4); padding-bottom:env(safe-area-inset-bottom, 0px); background:#0d1626;}
+  #app-switcher-bottom button{flex:1; padding:12px 0; border:none; font-weight:700; font-size:13px; font-family:'Inter',sans-serif;}
+  .barinner{max-width:640px; margin:0 auto; display:flex; gap:10px;}
+  .save-btn{flex:1; padding:15px 0; border-radius:14px; background:var(--yellow); color:#101a2c; border:none; font-family:'Oswald',sans-serif; font-weight:700; font-size:15px; letter-spacing:0.03em;}
+  .save-btn:active{transform:scale(0.98);}
+  .toast{position:fixed; bottom:92px; left:50%; transform:translateX(-50%) translateY(10px); opacity:0; background:var(--surface2); border:1px solid var(--yellow-dim); color:var(--yellow); padding:9px 18px; border-radius:20px; font-size:13px; font-weight:600; transition:all 0.25s ease; z-index:40; pointer-events:none; max-width:85vw; text-align:center;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .storico-item{margin:0 14px 10px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+  .storico-item .row1{display:flex; justify-content:space-between; align-items:center;}
+  .storico-item .day-tag{font-family:'Oswald',sans-serif; font-weight:700; font-size:13px;}
+  .storico-item .wk-tag{font-size:11px; color:var(--muted); display:flex; align-items:center; gap:6px;}
+  .sync-dot{width:7px; height:7px; border-radius:50%;}
+  .sync-dot.synced{background:var(--green);}
+  .sync-dot.pending{background:var(--orange);}
+  .storico-item .summary{font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5;}
+  .empty{margin:40px 14px; text-align:center; color:var(--muted); font-size:13px;}
+
+  .action-btn{margin:16px 14px 6px; width:calc(100% - 28px); padding:13px 0; border-radius:12px; border:1px solid var(--yellow-dim); background:var(--surface2); color:var(--yellow); font-family:'Oswald',sans-serif; font-weight:700; font-size:14px; letter-spacing:0.02em;}
+  .action-btn.secondary{border-color:var(--line); color:var(--blue);}
+  .action-hint{margin:6px 14px 18px; font-size:11px; color:var(--muted); text-align:center; line-height:1.5;}
+
+  .settings-panel{margin:16px 14px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px;}
+  .settings-panel h3{font-size:12px; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px;}
+  .field{margin-bottom:10px;}
+  .field label{display:block; font-size:11.5px; color:var(--muted); margin-bottom:4px;}
+  .field input{width:100%; background:var(--bg2); border:1px solid var(--line); border-radius:9px; color:var(--text); font-size:14px; padding:10px;}
+  .field-hint{font-size:10.5px; color:var(--muted); margin-top:4px; line-height:1.4;}
+  .roadmap{margin:0 14px 20px; padding:12px 14px; background:var(--surface2); border-radius:12px; border:1px dashed var(--line); font-size:11.5px; color:var(--muted); line-height:1.6;}
+  .roadmap b{color:var(--text);}
+  .profile-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line);}
+  .profile-row:last-child{border-bottom:none;}
+  .profile-name{font-size:13.5px; color:var(--text); font-weight:600;}
+  .badge{display:inline-block; margin-left:6px; padding:2px 7px; border-radius:10px; background:var(--yellow-dim); color:var(--yellow); font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;}
+  .profile-actions{display:flex; gap:6px;}
+  .mini-btn{padding:6px 10px; border-radius:8px; border:1px solid var(--line); background:var(--bg2); color:var(--blue); font-size:11px; font-weight:600;}
+  .mini-btn.danger{color:var(--orange); border-color:rgba(255,138,92,0.3);}
+</style>
 </head>
 <body>
-  <iframe id="app-frame" src="palestra-app.html"></iframe>
-  <div id="app-switcher-bottom">
-    <button onclick="location.href='index.html'" style="background:#16243d;color:#8ea0bf;">🍽 Dieta</button>
-    <button onclick="location.href='palestra.html'" style="background:#ffcc33;color:#101a2c;">🏋 Palestra</button>
+
+<header class="top">
+  <div class="brand">
+    <span class="word">FITNESS REVOLUTION</span>
+    <span class="sub">Venni · Vidi · Vinsi</span>
   </div>
-  <script>
-    var switcherH = document.getElementById('app-switcher-bottom').offsetHeight;
-    document.getElementById('app-frame').style.bottom = switcherH + 'px';
-  </script>
+  <div class="athlete">
+    <span><b id="userLabel">Mauro Spaggiari</b> · Coach Simone Lanzoni · Dimagrimento · 12 sett.</span>
+    <button class="gear" id="gearBtn">⚙</button>
+  </div>
+  <nav class="days" id="dayNav"></nav>
+  <div class="view-toggle" id="viewToggle">
+    <button data-view="log" class="active">Allenamento</button>
+    <button data-view="storico">Storico</button>
+    <button data-view="settings">Impostazioni</button>
+  </div>
+</header>
+
+<div class="app" id="app"></div>
+
+<div class="bar" id="bar">
+  <div class="barinner">
+    <button class="save-btn" id="saveBtn">Salva sessione</button>
+  </div>
+</div>
+<div class="toast" id="toast">Salvato</div>
+
+<script>
+const DATA = {
+  A: {
+    title: "Giorno A — Ginocchio-dominante",
+    focus: "Squat-dominante — spinta e trazione bilanciate",
+    exercises: [
+      {name:"Back Squat al rack", note:"Bilanciere + rack (o Box Squat su plyobox)", tag:"SQUAT", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Landmine Press mono", note:"Landmine", tag:"PUSH ORIZZ.", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"RDL con manubri", note:"Manubri", tag:"HINGE", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Rematore manubrio", note:"Presa neutra", tag:"PULL ORIZZ.", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Affondo bulgaro", note:"Manubri + plyobox, nessun salto", tag:"UNILAT.", t:{B1:"3×12-15/g",B2:"3×10-12/g",B3:"3×8-10/g",B4:"3×8-10/g"}, r:{B1:'75-90"',B2:'75-90"',B3:'75-90"',B4:'75-90"'}},
+      {name:"Panca inclinata", note:"Manubri, inclinazione 30-45° (non verticale)", tag:"PUSH INCL.", t:{B1:"3×12",B2:"3×10-12",B3:"3×10-12",B4:"3×8-10"}, r:{B1:'75-90"',B2:'75-90"',B3:'75-90" (B3: 60")',B4:'75-90" (B3: 60")'}},
+      {name:"Lat Pulldown", note:"Rack cavo alto", tag:"PULL VERT.", t:{B1:"3×12",B2:"3×10-12",B3:"3×10-12",B4:"3×8-10"}, r:{B1:'75-90"',B2:'75-90"',B3:'75-90" (B3: 60")',B4:'75-90" (B3: 60")'}},
+      {name:"Hip abduction al cavo basso", note:"Rack cavo basso", tag:"ISO ANCA", t:{B1:"3×15/lato",B2:"3×12/lato",B3:"3×12/lato",B4:"3×10-12/lato"}, r:{B1:'60-75"',B2:'60-75"',B3:'60-75" (B3: 45")',B4:'60-75" (B3: 45")'}},
+      {name:"Curl bicipiti alternato", note:"Manubri", tag:"ISO SUP.", t:{B1:"3×15",B2:"3×12",B3:"3×10-12",B4:"3×10-12"}, r:{B1:'60"',B2:'60"',B3:'60"',B4:'60"'}},
+      {name:"Calf raise su rialzo", note:"Bilanciere + plyobox", tag:"POLPACCI", t:{B1:"3×15-20",B2:"3×15",B3:"3×12-15",B4:"3×12-15"}, r:{B1:'60"',B2:'60"',B3:'60"',B4:'60"'}},
+    ],
+    core: [
+      {name:"Pallof Press", note:"Rack cavo alto", tag:"CORE", t:{B1:"3×10/lato",B2:"3×12/lato",B3:"3×12-15/lato",B4:"3×max"}, r:{B1:'45-60"',B2:'45-60"',B3:'45-60"',B4:'45-60"'}},
+      {name:"Plank / TRX Plank dinamico", note:"TRX (uso da finisher)", tag:"CORE", t:{B1:"3×8-10",B2:"3×10-12",B3:"3×12-15",B4:"3×max"}, r:{B1:'45-60"',B2:'45-60"',B3:'45-60"',B4:'45-60"'}},
+    ],
+    finisher: [
+      {name:"Kettlebell Power Swing", note:"Variante russa, altezza petto (non overhead)", tag:"COND.", t:{B1:"3×15",B2:"4×15-20",B3:"5×15-20",B4:"3×20"}, r:{B1:'60-90"',B2:'60-90"',B3:'60-90" (B3: 45-60")',B4:'60-90" (B3: 45-60")'}},
+    ],
+    notes: [
+      "Back Squat: profondità regolata sulla soglia indolore del ginocchio sx, non su un range fisso; interrompere se dolore rotuleo > 3/10.",
+      "Landmine Press: gomito sotto il polso, ROM entro il limite attuale di mobilità di spalla — non forzare l'estensione overhead completa.",
+      "Panca inclinata: inclinazione moderata (30-45°), non verticale, per rispettare la mobilità di spalla attuale.",
+      "Affondo bulgaro: nessun elemento di salto; risalita controllata, mai esplosiva.",
+      "Hip abduction: movimento lento e controllato, utile per il supporto del tracking rotuleo laterale.",
+      "Kettlebell Power Swing: variante russa (altezza petto), non overhead — coerente con la mobilità di spalla attuale di Mauro.",
+    ]
+  },
+  B: {
+    title: "Giorno B — Anca-dominante",
+    focus: "Hinge-dominante — spinta e trazione bilanciate",
+    exercises: [
+      {name:"RDL con bilanciere", note:"Bilanciere", tag:"HINGE", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Trazioni assistite", note:"Sbarre/parallele + fascia", tag:"PULL VERT.", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Panca piana", note:"Bilanciere o manubri", tag:"PUSH ORIZZ.", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Goblet Squat", note:"Kettlebell", tag:"SQUAT", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Kettlebell Single-Leg RDL", note:"Kettlebell, nessun appoggio elevato", tag:"UNILAT.", t:{B1:"3×12-15/g",B2:"3×10-12/g",B3:"3×8-10/g",B4:"3×8-10/g"}, r:{B1:'75-90"',B2:'75-90"',B3:'75-90"',B4:'75-90"'}},
+      {name:"Landmine Press bilaterale", note:"Presa a V", tag:"PUSH ORIZZ. (2°)", t:{B1:"3×12",B2:"3×10-12",B3:"3×10-12",B4:"3×8-10"}, r:{B1:'75-90"',B2:'75-90"',B3:'75-90" (B3: 60")',B4:'75-90" (B3: 60")'}},
+      {name:"Rematore al cavo basso", note:"Presa neutra", tag:"PULL ORIZZ. (2°)", t:{B1:"3×12",B2:"3×10-12",B3:"3×10-12",B4:"3×8-10"}, r:{B1:'75-90"',B2:'75-90"',B3:'75-90" (B3: 60")',B4:'75-90" (B3: 60")'}},
+      {name:"Hyperextension", note:"Focus glutei/erettori", tag:"ISO POST.", t:{B1:"3×15",B2:"3×12",B3:"3×10-12",B4:"3×10-12"}, r:{B1:'60-75"',B2:'60-75"',B3:'60-75"',B4:'60-75"'}},
+      {name:"Face Pull", note:"Rack cavo alto", tag:"ISO SCAP.", t:{B1:"3×15",B2:"3×12",B3:"3×10-12",B4:"3×10-12"}, r:{B1:'60"',B2:'60"',B3:'60"',B4:'60"'}},
+      {name:"Calf raise monopodalico", note:"Manubrio + plyobox", tag:"POLPACCI", t:{B1:"3×15-20/g",B2:"3×15/g",B3:"3×12-15/g",B4:"3×12-15/g"}, r:{B1:'60"',B2:'60"',B3:'60"',B4:'60"'}},
+    ],
+    core: [
+      {name:"Renegade Row", note:"Kettlebell (coppia)", tag:"CORE/PULL", t:{B1:"3×8/lato",B2:"3×10/lato",B3:"3×10-12/lato",B4:"3×max tecnica"}, r:{B1:'45-60"',B2:'45-60"',B3:'45-60"',B4:'45-60"'}},
+      {name:"TRX Mountain Climber lento", note:"TRX (uso da finisher)", tag:"CORE", t:{B1:"3×8-10",B2:"3×10-12",B3:"3×12-15",B4:"3×max"}, r:{B1:'45-60"',B2:'45-60"',B3:'45-60"',B4:'45-60"'}},
+    ],
+    finisher: [
+      {name:"Double Power Mid Pull", note:"Kettlebell — ROM frontale, fino ad altezza spalle (non oltre)", tag:"COND.", t:{B1:"3×15",B2:"4×15-20",B3:"5×15-20",B4:"3×20"}, r:{B1:'60-90"',B2:'60-90"',B3:'60-90" (B3: 45-60")',B4:'60-90" (B3: 45-60")'}},
+    ],
+    notes: [
+      "RDL: ROM parziale nelle prime settimane per la rigidità degli ischiocrurali; ampliare gradualmente su indicazione del coach.",
+      "Trazioni assistite: regolare l'assistenza (fascia) per restare nel range di reps; se compare dolore alla spalla, ridurre il ROM.",
+      "Kettlebell Single-Leg RDL: nessun appoggio elevato richiesto — sostituisce lo step-up, più gestibile data la struttura fisica di Mauro.",
+      "Renegade Row: mani su kettlebell stabili, bacino fermo — anti-rotazione, non velocità.",
+      "Double Power Mid Pull: arco frontale, mai oltre l'altezza delle spalle, entro la mobilità attuale.",
+    ]
+  },
+  C: {
+    title: "Giorno C — Unilaterale-dominante",
+    focus: "Unilaterale — spinta e trazione bilanciate",
+    exercises: [
+      {name:"Landmine Squat", note:"Landmine", tag:"SQUAT", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Rematore bilanciere", note:"Busto inclinato", tag:"PULL ORIZZ.", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Hip Thrust", note:"Bilanciere + panca", tag:"HINGE", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"DB Press su panca", note:"Manubri, presa neutra, panca piana", tag:"PUSH ORIZZ.", t:{B1:"3×12-15",B2:"4×10-12",B3:"4×10-12",B4:"3-4×8-10"}, r:{B1:'90-120"',B2:'90-120"',B3:'90-120"',B4:'90-120" (B3: 60-75")'}},
+      {name:"Reverse Lunge", note:"Manubri, nessun salto", tag:"UNILAT.", t:{B1:"3×12-15/g",B2:"3×10-12/g",B3:"3×8-10/g",B4:"3×8-10/g"}, r:{B1:'75-90"',B2:'75-90"',B3:'75-90"',B4:'75-90"'}},
+      {name:"Squeeze Press", note:"Kettlebell su panca 30°, presa stretta a V", tag:"PUSH ORIZZ. (2°)", t:{B1:"3×12",B2:"3×10-12",B3:"3×10-12",B4:"3×8-10"}, r:{B1:'75-90"',B2:'75-90"',B3:'75-90" (B3: 60")',B4:'75-90" (B3: 60")'}},
+      {name:"Pulldown monolaterale", note:"Rack cavo alto, un braccio per volta", tag:"PULL VERT. (2°)", t:{B1:"3×12/lato",B2:"3×10-12/lato",B3:"3×10-12/lato",B4:"3×8-10/lato"}, r:{B1:'75-90"',B2:'75-90"',B3:'75-90" (B3: 60")',B4:'75-90" (B3: 60")'}},
+      {name:"Alzate laterali", note:"Manubri", tag:"ISO SUP.", t:{B1:"3×15",B2:"3×12",B3:"3×10-12",B4:"3×10-12"}, r:{B1:'60"',B2:'60"',B3:'60"',B4:'60"'}},
+      {name:"Tricipiti al cavo alto", note:"Rack cavo alto", tag:"ISO SUP.", t:{B1:"3×15",B2:"3×12",B3:"3×10-12",B4:"3×10-12"}, r:{B1:'60"',B2:'60"',B3:'60"',B4:'60"'}},
+      {name:"Calf raise bipodalico", note:"Kettlebell + rialzo", tag:"POLPACCI", t:{B1:"3×15-20",B2:"3×15",B3:"3×12-15",B4:"3×12-15"}, r:{B1:'60"',B2:'60"',B3:'60"',B4:'60"'}},
+    ],
+    core: [
+      {name:"Knee Raise appesi", note:"Sbarre", tag:"CORE", t:{B1:"3×8 gin.",B2:"3×10",B3:"3×12 tese",B4:"3×max"}, r:{B1:'45-60"',B2:'45-60"',B3:'45-60"',B4:'45-60"'}},
+      {name:"TRX Abdominal Rollout", note:"TRX (uso da finisher)", tag:"CORE", t:{B1:"3×8-10",B2:"3×10-12",B3:"3×12-15",B4:"3×max"}, r:{B1:'45-60"',B2:'45-60"',B3:'45-60"',B4:'45-60"'}},
+    ],
+    finisher: [
+      {name:"Steelmace 10-to-2 Swing", note:"Ampiezza parziale, entro il ROM di spalla attuale", tag:"COND.", t:{B1:"3×15",B2:"4×15-20",B3:"5×15-20",B4:"3×20"}, r:{B1:'60-90"',B2:'60-90"',B3:'60-90" (B3: 45-60")',B4:'60-90" (B3: 45-60")'}},
+    ],
+    notes: [
+      "Landmine Squat e DB Press: stessa logica di ROM controllato delle altre giornate.",
+      "Reverse Lunge: preferito all'affondo in avanti per il minor stress di traslazione anteriore sul ginocchio sx; nessun elemento di salto.",
+      "Pulldown monolaterale: coerente con il tema unilaterale della giornata, un braccio per volta.",
+      "Alzate laterali: ROM parziale se compare fastidio in elevazione, in linea con la mobilità di spalla attuale.",
+      "Steelmace 10-to-2: ampiezza parziale entro il ROM di spalla attuale; nessun elemento con salto o impatto in tutto il finisher.",
+    ]
+  }
+};
+
+const BLOCK_COLOR = {B1:'var(--b1)',B2:'var(--b2)',B3:'var(--b3)',B4:'var(--b4)'};
+const BLOCK_DESC = {
+  B1:"Sett. 1-3 · Ricondizionamento tecnico & metabolico",
+  B2:"Sett. 4-6 · Dimagrimento — volume",
+  B3:"Sett. 7-9 · Dimagrimento — densità metabolica",
+  B4:"Sett. 10-12 · Consolidamento + scarico sett.12"
+};
+
+function blockOf(week){
+  if(week<=3) return 'B1';
+  if(week<=6) return 'B2';
+  if(week<=9) return 'B3';
+  return 'B4';
+}
+function setsCount(targetStr){
+  const left = targetStr.split('×')[0];
+  const parts = left.split('-').map(n=>parseInt(n,10));
+  return Math.max(...parts);
+}
+
+const STORAGE_PREFIX = 'jellyroger_scheda_';
+
+function getSettings(){
+  try{
+    const raw = localStorage.getItem(STORAGE_PREFIX + 'settings');
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return { piUrl: '' };
+}
+function saveSettings(s){
+  localStorage.setItem(STORAGE_PREFIX + 'settings', JSON.stringify(s));
+}
+
+// ---- Profili atleta (multi-utente) ----
+function getProfiles(){
+  try{
+    const raw = localStorage.getItem(STORAGE_PREFIX + 'profiles');
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return [];
+}
+function saveProfiles(list){ localStorage.setItem(STORAGE_PREFIX + 'profiles', JSON.stringify(list)); }
+function getActiveProfileId(){ return localStorage.getItem(STORAGE_PREFIX + 'active_profile'); }
+function setActiveProfileId(id){ localStorage.setItem(STORAGE_PREFIX + 'active_profile', id); }
+function slugify(name){ return (name||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'atleta'; }
+function uniqueProfileId(base){
+  const existing = getProfiles().map(p=>p.id);
+  let id = base, i = 2;
+  while(existing.includes(id)){ id = `${base}-${i++}`; }
+  return id;
+}
+
+function migrateLegacyData(profileId){
+  // sposta i dati salvati prima dell'introduzione dei profili sotto il profilo di default
+  try{
+    const legacyRaw = localStorage.getItem(STORAGE_PREFIX + 'sessions_index');
+    if(!legacyRaw) return;
+    localStorage.setItem(indexKey(profileId), legacyRaw);
+    const idx = JSON.parse(legacyRaw);
+    idx.forEach(item=>{
+      const legacyEntryKey = `${STORAGE_PREFIX}entry_${item.day}_${String(item.week).padStart(2,'0')}`;
+      const val = localStorage.getItem(legacyEntryKey);
+      if(val) localStorage.setItem(entryKey(profileId, item.day, item.week), val);
+    });
+  }catch(e){}
+}
+
+function ensureProfiles(){
+  let profiles = getProfiles();
+  if(profiles.length === 0){
+    const def = {id:'mauro', name:'Mauro Spaggiari', createdAt:new Date().toISOString()};
+    profiles = [def];
+    saveProfiles(profiles);
+    migrateLegacyData('mauro');
+  }
+  let active = getActiveProfileId();
+  if(!active || !profiles.find(p=>p.id===active)){
+    active = profiles[0].id;
+    setActiveProfileId(active);
+  }
+  return profiles;
+}
+
+function activeProfileName(){
+  const p = getProfiles().find(x=>x.id===state.profileId);
+  return p ? p.name : 'Atleta';
+}
+
+let settings = getSettings();
+ensureProfiles();
+let state = { day: 'A', week: 1, view: 'log', entries: {}, profileId: getActiveProfileId() };
+
+const app = document.getElementById('app');
+const dayNav = document.getElementById('dayNav');
+const toast = document.getElementById('toast');
+const bar = document.getElementById('bar');
+document.getElementById('userLabel').textContent = activeProfileName();
+
+['A','B','C'].forEach(d=>{
+  const b = document.createElement('button');
+  b.className = 'day-btn' + (d===state.day?' active':'');
+  b.textContent = 'Giorno ' + d;
+  b.onclick = () => { state.day = d; loadEntry(); render(); };
+  b.dataset.day = d;
+  dayNav.appendChild(b);
+});
+
+document.getElementById('viewToggle').addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  state.view = btn.dataset.view;
+  render();
+});
+document.getElementById('gearBtn').addEventListener('click', ()=>{ state.view='settings'; render(); });
+document.getElementById('saveBtn').addEventListener('click', saveEntry);
+
+function entryKey(profileId, day, week){ return `${STORAGE_PREFIX}entry_${profileId}_${day}_${String(week).padStart(2,'0')}`; }
+function indexKey(profileId){ return `${STORAGE_PREFIX}sessions_index_${profileId}`; }
+
+function loadEntry(){
+  state.entries = {};
+  try{
+    const raw = localStorage.getItem(entryKey(state.profileId, state.day, state.week));
+    if(raw){
+      const parsed = JSON.parse(raw);
+      state.entries = parsed.entries || {};
+    }
+  }catch(e){}
+}
+
+function saveEntry(){
+  const payload = {
+    day: state.day,
+    week: state.week,
+    blocco: blockOf(state.week),
+    savedAt: new Date().toISOString(),
+    entries: collectFromDOM(),
+    synced: false,
+  };
+  try{
+    localStorage.setItem(entryKey(state.profileId, state.day, state.week), JSON.stringify(payload));
+    let idx = [];
+    try{
+      const raw = localStorage.getItem(indexKey(state.profileId));
+      if(raw) idx = JSON.parse(raw);
+    }catch(e){}
+    const id = `${state.day}-${state.week}`;
+    idx = idx.filter(x=>x.id!==id);
+    idx.push({id, day: state.day, week: state.week, blocco: payload.blocco, savedAt: payload.savedAt, synced:false});
+    localStorage.setItem(indexKey(state.profileId), JSON.stringify(idx));
+    showToast('Salvato sul telefono');
+    state.entries = payload.entries;
+  }catch(e){
+    showToast('Errore nel salvataggio');
+  }
+}
+
+const BAND_COLORS = ['azzurro','verde','giallo','arancione'];
+
+function bandRowHtml(selected){
+  return `<div class="band-row">${BAND_COLORS.map(c=>
+    `<span class="band-chip${selected.includes(c)?' selected':''}" data-color="${c}">${c}</span>`
+  ).join('')}</div>`;
+}
+
+function setRowHtml(i, sw, sr, bands){
+  bands = bands || [];
+  return `
+    <div class="set-row" data-idx="${i}">
+      <div class="idx">${i}</div>
+      <input class="w-input" type="number" inputmode="decimal" placeholder="kg" value="${sw}">
+      <span class="unit">kg</span>
+      <input class="r-input" type="number" inputmode="numeric" placeholder="reps" value="${sr}">
+      <span class="unit">rp</span>
+      <button type="button" class="band-toggle${bands.length?' active':''}" title="Elastico">⌇</button>
+      <button type="button" class="rm" title="Rimuovi serie">✕</button>
+      ${bandRowHtml(bands)}
+    </div>`;
+}
+
+function reindexRows(setsContainer){
+  setsContainer.querySelectorAll('.set-row').forEach((row, i)=>{
+    row.querySelector('.idx').textContent = i+1;
+  });
+}
+
+function wireSetRow(row){
+  row.querySelector('.rm').addEventListener('click', ()=>{
+    const container = row.closest('.sets');
+    row.remove();
+    reindexRows(container);
+  });
+  row.querySelector('.band-toggle').addEventListener('click', ()=>{
+    row.querySelector('.band-row').classList.toggle('open');
+  });
+  row.querySelectorAll('.band-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      chip.classList.toggle('selected');
+      const anySelected = row.querySelectorAll('.band-chip.selected').length > 0;
+      row.querySelector('.band-toggle').classList.toggle('active', anySelected);
+    });
+  });
+}
+
+function collectFromDOM(){
+  const out = {};
+  document.querySelectorAll('.exercise').forEach(card=>{
+    const name = card.dataset.name;
+    const rows = [];
+    card.querySelectorAll('.set-row').forEach(row=>{
+      const w = row.querySelector('.w-input').value;
+      const r = row.querySelector('.r-input').value;
+      const bands = Array.from(row.querySelectorAll('.band-chip.selected')).map(c=>c.dataset.color);
+      rows.push({w, r, bands});
+    });
+    out[name] = rows;
+  });
+  return out;
+}
+
+function showToast(msg='Salvato'){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  const duration = Math.min(6000, Math.max(2000, msg.length * 60));
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>toast.classList.remove('show'), duration);
+}
+
+function exerciseCard(ex, blocco){
+  const savedRows = (state.entries[ex.name]) || [];
+  const defaultCount = setsCount(ex.t[blocco]);
+  const rowCount = Math.max(defaultCount, savedRows.length);
+  let rowsHtml = '';
+  for(let i=0;i<rowCount;i++){
+    const sw = savedRows[i]?.w ?? '';
+    const sr = savedRows[i]?.r ?? '';
+    const bands = savedRows[i]?.bands ?? [];
+    rowsHtml += setRowHtml(i+1, sw, sr, bands);
+  }
+  return `
+    <div class="exercise" data-name="${ex.name.replace(/"/g,'&quot;')}">
+      <div class="ex-head">
+        <div>
+          <div class="ex-name">${ex.name}</div>
+          <div class="ex-note">${ex.note} · <span style="color:var(--muted); text-transform:uppercase; font-size:10px; letter-spacing:.05em;">${ex.tag}</span></div>
+        </div>
+        <div class="ex-target">${ex.t[blocco]}<span class="rec">rec. ${ex.r[blocco]}</span></div>
+      </div>
+      <div class="sets">${rowsHtml}
+        <button class="add-set" data-name="${ex.name.replace(/"/g,'&quot;')}">+ serie</button>
+      </div>
+    </div>`;
+}
+
+function render(){
+  document.querySelectorAll('.day-btn').forEach(b=>b.classList.toggle('active', b.dataset.day===state.day));
+  document.querySelectorAll('#viewToggle button').forEach(b=>b.classList.toggle('active', b.dataset.view===state.view));
+  bar.style.display = state.view==='log' ? 'block' : 'none';
+
+  if(state.view==='storico'){ renderStorico(); return; }
+  if(state.view==='settings'){ renderSettings(); return; }
+
+  const d = DATA[state.day];
+  const blocco = blockOf(state.week);
+
+  let weekDots = '';
+  for(let w=1; w<=12; w++){
+    const bc = blockOf(w);
+    weekDots += `<div class="wk ${w===state.week?'active':''}" data-week="${w}"><span>${w}</span><small>${bc}</small><span class="dot" style="background:${BLOCK_COLOR[bc]}"></span></div>`;
+  }
+
+  let html = `
+    <div class="weekstrip" id="weekstrip">${weekDots}</div>
+    <div class="blocco-banner">
+      <span class="chip" style="background:${BLOCK_COLOR[blocco]}">${blocco}</span>
+      <span class="desc">${BLOCK_DESC[blocco]}</span>
+    </div>
+    <div class="daytitle"><h2>${d.title}</h2><div class="foc">${d.focus}</div></div>
+  `;
+
+  d.exercises.forEach(ex=>{ html += exerciseCard(ex, blocco); });
+  html += `<div class="group-label">Core</div>`;
+  d.core.forEach(ex=>{ html += exerciseCard(ex, blocco); });
+  html += `<div class="group-label">Finisher condizionamento</div>`;
+  d.finisher.forEach(ex=>{ html += exerciseCard(ex, blocco); });
+  html += `<div class="notes-box"><h3>Note tecniche — ${d.title}</h3><ul>${d.notes.map(n=>`<li>${n}</li>`).join('')}</ul></div>`;
+
+  app.innerHTML = html;
+
+  document.getElementById('weekstrip').addEventListener('click', e=>{
+    const wk = e.target.closest('.wk');
+    if(!wk) return;
+    state.week = parseInt(wk.dataset.week,10);
+    loadEntry();
+    render();
+  });
+  document.querySelectorAll('.set-row').forEach(wireSetRow);
+  document.querySelectorAll('.add-set').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const setsBox = btn.parentElement;
+      const idx = setsBox.querySelectorAll('.set-row').length + 1;
+      const wrap = document.createElement('div');
+      wrap.innerHTML = setRowHtml(idx, '', '', []);
+      const row = wrap.firstElementChild;
+      setsBox.insertBefore(row, btn);
+      wireSetRow(row);
+    });
+  });
+  const activeWk = document.querySelector('.wk.active');
+  if(activeWk) activeWk.scrollIntoView({inline:'center', block:'nearest'});
+}
+
+function renderSettings(){
+  const profiles = getProfiles();
+  const profileRows = profiles.map(p=>`
+    <div class="profile-row${p.id===state.profileId?' active':''}">
+      <span class="profile-name">${p.name}${p.id===state.profileId?' <span class="badge">attivo</span>':''}</span>
+      <span class="profile-actions">
+        ${p.id!==state.profileId?`<button class="mini-btn" data-switch="${p.id}">Seleziona</button>`:''}
+        ${profiles.length>1?`<button class="mini-btn danger" data-del="${p.id}">Elimina</button>`:''}
+      </span>
+    </div>`).join('');
+
+  app.innerHTML = `
+    <div class="settings-panel">
+      <h3>Profili atleta</h3>
+      <div id="profileList">${profileRows}</div>
+      <div class="field" style="margin-top:12px;">
+        <label>Nuovo profilo</label>
+        <div style="display:flex; gap:8px;">
+          <input id="newProfileName" placeholder="Nome e cognome" style="flex:1;">
+          <button class="action-btn" id="addProfileBtn" style="margin:0; width:auto; padding:10px 16px; white-space:nowrap;">+ Aggiungi</button>
+        </div>
+        <div class="field-hint">Ogni profilo ha il proprio Storico, separato dagli altri. Utile per allenare più persone con la stessa app (es. tu e altri atleti del coach).</div>
+      </div>
+    </div>
+    <div class="settings-panel">
+      <h3>Sincronizzazione con il Pi (JellyRoger)</h3>
+      <div class="field">
+        <label>Indirizzo backend (quando sarà attivo)</label>
+        <input id="setPiUrl" placeholder="https://scheda.jellyroger.cv" value="${settings.piUrl}">
+        <div class="field-hint">Lascia vuoto finché il backend sul Pi non è pronto: l'app funziona comunque, salva tutto sul telefono. Ogni profilo si sincronizzerà separatamente col proprio nome.</div>
+      </div>
+      <button class="action-btn" id="saveSettingsBtn" style="margin:6px 0 0;">Salva impostazioni</button>
+    </div>
+    <div class="roadmap">
+      <b>In arrivo (fase successiva, quando il Pi sarà raggiungibile):</b><br>
+      · Sincronizzazione automatica delle sessioni verso l'archivio sul Pi<br>
+      · Export PDF con l'impaginazione esatta delle tabelle MESE 1-2 / MESE 3-4 del programma originale<br>
+      · Importare una nuova scheda da PDF quando cambia la programmazione<br>
+      · Storico delle schede nel tempo (versioni precedenti del programma)<br>
+      · Statistiche allenamento (progressione carichi, volume per blocco)<br>
+      · Peso corporeo e altre metriche importate da Garmin Connect
+    </div>
+  `;
+
+  document.querySelectorAll('[data-switch]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.switch;
+      setActiveProfileId(id);
+      state.profileId = id;
+      document.getElementById('userLabel').textContent = activeProfileName();
+      state.week = 1;
+      state.day = 'A';
+      loadEntry();
+      state.view = 'log';
+      showToast(`Profilo attivo: ${activeProfileName()}`);
+      render();
+    });
+  });
+  document.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.del;
+      const p = profiles.find(x=>x.id===id);
+      if(!confirm(`Eliminare il profilo "${p.name}" e tutte le sue sessioni salvate? L'azione non è reversibile.`)) return;
+      // rimuove tutte le chiavi salvate per questo profilo
+      try{
+        const raw = localStorage.getItem(indexKey(id));
+        if(raw){
+          JSON.parse(raw).forEach(item=>localStorage.removeItem(entryKey(id, item.day, item.week)));
+        }
+        localStorage.removeItem(indexKey(id));
+      }catch(e){}
+      const remaining = profiles.filter(x=>x.id!==id);
+      saveProfiles(remaining);
+      if(state.profileId===id){
+        state.profileId = remaining[0].id;
+        setActiveProfileId(state.profileId);
+        loadEntry();
+      }
+      document.getElementById('userLabel').textContent = activeProfileName();
+      showToast('Profilo eliminato');
+      render();
+    });
+  });
+  document.getElementById('addProfileBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('newProfileName').value.trim();
+    if(!name){ showToast('Inserisci un nome'); return; }
+    const id = uniqueProfileId(slugify(name));
+    const newProfiles = [...getProfiles(), {id, name, createdAt:new Date().toISOString()}];
+    saveProfiles(newProfiles);
+    setActiveProfileId(id);
+    state.profileId = id;
+    state.week = 1;
+    state.day = 'A';
+    loadEntry();
+    document.getElementById('userLabel').textContent = activeProfileName();
+    showToast(`Profilo "${name}" creato e selezionato`);
+    render();
+  });
+  document.getElementById('saveSettingsBtn').addEventListener('click', ()=>{
+    settings.piUrl = document.getElementById('setPiUrl').value.trim().replace(/\/+$/,'');
+    saveSettings(settings);
+    showToast('Impostazioni salvate');
+  });
+}
+
+function renderStorico(){
+  let idx = [];
+  try{
+    const raw = localStorage.getItem(indexKey(state.profileId));
+    if(raw) idx = JSON.parse(raw);
+  }catch(e){}
+  idx.sort((a,b)=> new Date(b.savedAt) - new Date(a.savedAt));
+  const pendingCount = idx.filter(x=>!x.synced).length;
+
+  let html = `<div style="padding:16px 14px 4px;"><h2 style="font-size:17px;">Storico sessioni — ${activeProfileName()}</h2></div>`;
+  html += `<button class="action-btn" id="exportBtn"${idx.length===0?' disabled style="opacity:0.5;"':''}>⬇ Esporta backup Excel (.xlsx)</button>
+    <div class="action-hint">Genera un file Excel con tutte le sessioni salvate sul telefono per questo profilo.</div>`;
+  html += `<button class="action-btn secondary" id="syncBtn"${idx.length===0?' disabled style="opacity:0.5;"':''}>⇄ Sincronizza con il Pi${pendingCount ? ` (${pendingCount} in attesa)` : ' (tutto sincronizzato)'}</button>
+    <div class="action-hint">${settings.piUrl ? `Backend: ${settings.piUrl}` : 'Imposta l\'indirizzo del Pi in Impostazioni per attivare la sincronizzazione.'}</div>`;
+  html += `<input type="file" id="importFileInput" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none;">
+    <button class="action-btn secondary" id="importBtn">⬆ Importa backup Excel (.xlsx)</button>
+    <div class="action-hint">Ripristina sessioni da un backup esportato in precedenza — anche da un altro telefono o su un profilo appena creato. Riconosce il profilo dalla colonna "Utente" (lo crea se non esiste). Le sessioni con stesso profilo/giorno/settimana verranno sovrascritte.</div>`;
+
+  if(idx.length===0){
+    html += `<div class="empty">Nessuna sessione salvata ancora per <b style="color:var(--text)">${activeProfileName()}</b>.<br>Compila e salva un allenamento, oppure importa un backup con il pulsante qui sopra.</div>`;
+  }
+
+  for(const item of idx){
+    let entryData = null;
+    try{
+      const raw = localStorage.getItem(entryKey(state.profileId, item.day, item.week));
+      if(raw) entryData = JSON.parse(raw);
+    }catch(e){}
+    const dateStr = new Date(item.savedAt).toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'});
+    let summary = '';
+    if(entryData){
+      const exNames = Object.keys(entryData.entries).filter(k => entryData.entries[k].some(s=>s.w||s.r||(s.bands&&s.bands.length)));
+      summary = exNames.slice(0,3).map(n=>{
+        const sets = entryData.entries[n].filter(s=>s.w||s.r||(s.bands&&s.bands.length)).map(s=>{
+          const base = `${s.w||'-'}kg×${s.r||'-'}`;
+          return (s.bands && s.bands.length) ? `${base} [${s.bands.join('+')}]` : base;
+        }).join(', ');
+        return `<b style="color:var(--text)">${n}:</b> ${sets}`;
+      }).join('<br>');
+      if(exNames.length>3) summary += `<br>+ altri ${exNames.length-3} esercizi`;
+      if(exNames.length===0) summary = 'Nessun dato inserito.';
+    }
+    html += `
+      <div class="storico-item">
+        <div class="row1">
+          <span class="day-tag">Giorno ${item.day} · Sett. ${item.week}</span>
+          <span class="wk-tag"><span class="sync-dot ${item.synced?'synced':'pending'}"></span>${item.blocco} · ${dateStr}</span>
+        </div>
+        <div class="summary">${summary}</div>
+      </div>`;
+  }
+  app.innerHTML = html;
+
+  if(idx.length>0){
+    document.getElementById('exportBtn').addEventListener('click', exportExcel);
+    document.getElementById('syncBtn').addEventListener('click', syncWithPi);
+  }
+  document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importFileInput').click());
+  document.getElementById('importFileInput').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(file) importExcelFile(file);
+    e.target.value = '';
+  });
+}
+
+async function syncWithPi(){
+  if(!settings.piUrl){
+    showToast('Imposta prima l\'indirizzo del Pi in Impostazioni');
+    return;
+  }
+  let idx = [];
+  try{
+    const raw = localStorage.getItem(indexKey(state.profileId));
+    if(raw) idx = JSON.parse(raw);
+  }catch(e){}
+  const pending = idx.filter(x=>!x.synced);
+  if(pending.length===0){ showToast('Tutto già sincronizzato'); return; }
+
+  showToast(`Sincronizzo ${pending.length} sessioni…`);
+  let ok = 0, fail = 0;
+  for(const item of pending){
+    try{
+      const raw = localStorage.getItem(entryKey(state.profileId, item.day, item.week));
+      const entryData = raw ? JSON.parse(raw) : null;
+      if(!entryData) continue;
+      const res = await fetch(`${settings.piUrl}/api/entry`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user: activeProfileName(), day: item.day, week: item.week,
+          blocco: item.blocco, entries: entryData.entries,
+        }),
+      });
+      if(!res.ok) throw new Error('bad response');
+      item.synced = true;
+      entryData.synced = true;
+      localStorage.setItem(entryKey(state.profileId, item.day, item.week), JSON.stringify(entryData));
+      ok++;
+    }catch(e){ fail++; }
+  }
+  const newIdx = idx.map(x=>{
+    const match = pending.find(p=>p.id===x.id);
+    return match ? {...x, synced: match.synced} : x;
+  });
+  localStorage.setItem(indexKey(state.profileId), JSON.stringify(newIdx));
+  showToast(fail===0 ? `Sincronizzate ${ok} sessioni ✓` : `${ok} sincronizzate, ${fail} fallite (Pi non raggiungibile?)`);
+  render();
+}
+
+function ensureProfileByName(name){
+  name = (name || '').trim() || 'Atleta';
+  const profiles = getProfiles();
+  const existing = profiles.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if(existing) return existing.id;
+  const id = uniqueProfileId(slugify(name));
+  profiles.push({id, name, createdAt: new Date().toISOString()});
+  saveProfiles(profiles);
+  return id;
+}
+
+function normalizeHeader(h){
+  return String(h||'').toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // rimuove accenti (è->e, ecc.)
+}
+
+function getField(row, ...aliases){
+  // costruisce una mappa colonne normalizzate una sola volta per riga
+  if(!row.__norm){
+    row.__norm = {};
+    Object.keys(row).forEach(k=>{ row.__norm[normalizeHeader(k)] = row[k]; });
+  }
+  for(const a of aliases){
+    const v = row.__norm[normalizeHeader(a)];
+    if(v !== undefined && v !== '') return v;
+  }
+  return '';
+}
+
+function importExcelFile(file){
+  if(typeof XLSX === 'undefined'){
+    showToast('Serve connessione internet per leggere l\'Excel');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      if(rows.length === 0){ showToast('File letto ma senza righe di dati'); return; }
+
+      // individua quante righe hanno i campi minimi riconoscibili, prima di chiedere conferma
+      let recognizable = 0;
+      rows.forEach(row=>{
+        const day = String(getField(row,'Giorno','Day')).trim();
+        const week = parseInt(getField(row,'Settimana','Week','Sett'), 10);
+        const ex = String(getField(row,'Esercizio','Exercise')).trim();
+        if(day && week && ex) recognizable++;
+      });
+      if(recognizable === 0){
+        const cols = Object.keys(rows[0]).join(', ');
+        showToast(`Nessuna riga riconosciuta. Colonne trovate nel file: ${cols}`);
+        return;
+      }
+      if(!confirm(`Trovate ${recognizable} righe valide su ${rows.length}. Importarle? Le sessioni con stesso profilo/giorno/settimana già presenti verranno sovrascritte.`)) return;
+
+      const groups = {};
+      rows.forEach(row=>{
+        const userName = String(getField(row,'Utente','User','Nome')).trim() || 'Atleta';
+        const day = String(getField(row,'Giorno','Day')).trim();
+        const week = parseInt(getField(row,'Settimana','Week','Sett'), 10);
+        const ex = String(getField(row,'Esercizio','Exercise')).trim();
+        if(!day || !week || !ex) return;
+        const key = `${userName}__${day}__${week}`;
+        if(!groups[key]){
+          groups[key] = {
+            userName, day, week,
+            blocco: getField(row,'Blocco','Block') || blockOf(week),
+            savedAt: getField(row,'SavedAtISO','Data ISO') || new Date().toISOString(),
+            synced: /^s(ì|i)$/i.test(String(getField(row,'Sincronizzato','Synced')).trim()),
+            entries: {},
+          };
+        }
+        const serieIdx = (parseInt(getField(row,'Serie','Set'), 10) || 1) - 1;
+        if(!groups[key].entries[ex]) groups[key].entries[ex] = [];
+        while(groups[key].entries[ex].length <= serieIdx) groups[key].entries[ex].push({w:'', r:'', bands:[]});
+        groups[key].entries[ex][serieIdx] = {
+          w: String(getField(row,'Kg','Peso') || ''),
+          r: String(getField(row,'Reps','Ripetizioni') || ''),
+          bands: String(getField(row,'Elastico','Band') || '').split('+').map(s=>s.trim()).filter(Boolean),
+        };
+      });
+
+      let sessionCount = 0;
+      const touchedProfiles = new Set();
+      Object.values(groups).forEach(g=>{
+        const profileId = ensureProfileByName(g.userName);
+        touchedProfiles.add(g.userName);
+        const payload = { day:g.day, week:g.week, blocco:g.blocco, savedAt:g.savedAt, entries:g.entries, synced:g.synced };
+        localStorage.setItem(entryKey(profileId, g.day, g.week), JSON.stringify(payload));
+        let idx = [];
+        try{
+          const raw = localStorage.getItem(indexKey(profileId));
+          if(raw) idx = JSON.parse(raw);
+        }catch(err){}
+        const id = `${g.day}-${g.week}`;
+        idx = idx.filter(x=>x.id!==id);
+        idx.push({id, day:g.day, week:g.week, blocco:g.blocco, savedAt:g.savedAt, synced:g.synced});
+        localStorage.setItem(indexKey(profileId), JSON.stringify(idx));
+        sessionCount++;
+      });
+
+      showToast(`Importate ${sessionCount} sessioni per ${touchedProfiles.size} profilo/i`);
+      render();
+    }catch(err){
+      showToast('Errore nella lettura del file: ' + (err && err.message ? err.message : 'formato non riconosciuto'));
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+
+function exportExcel(){
+  if(typeof XLSX === 'undefined'){
+    showToast('Serve connessione internet per generare l\'Excel');
+    return;
+  }
+  let idx = [];
+  try{
+    const raw = localStorage.getItem(indexKey(state.profileId));
+    if(raw) idx = JSON.parse(raw);
+  }catch(e){}
+  if(idx.length===0){ showToast('Nessun dato da esportare'); return; }
+
+  const rows = [];
+  idx.sort((a,b)=> new Date(a.savedAt) - new Date(b.savedAt));
+  for(const item of idx){
+    let entryData = null;
+    try{
+      const raw = localStorage.getItem(entryKey(state.profileId, item.day, item.week));
+      if(raw) entryData = JSON.parse(raw);
+    }catch(e){}
+    if(!entryData) continue;
+    const dateStr = new Date(item.savedAt).toLocaleDateString('it-IT');
+    Object.keys(entryData.entries).forEach(exName=>{
+      entryData.entries[exName].forEach((s, i)=>{
+        if(!s.w && !s.r && !(s.bands && s.bands.length)) return;
+        rows.push({
+          'Utente': activeProfileName(),
+          'Data salvataggio': dateStr,
+          'Giorno': item.day,
+          'Settimana': item.week,
+          'Blocco': item.blocco,
+          'Esercizio': exName,
+          'Serie': i+1,
+          'Kg': s.w || '',
+          'Reps': s.r || '',
+          'Elastico': (s.bands && s.bands.length) ? s.bands.join('+') : '',
+          'Sincronizzato': item.synced ? 'Sì' : 'No',
+          'SavedAtISO': item.savedAt,
+        });
+      });
+    });
+  }
+  if(rows.length===0){ showToast('Nessun dato compilato da esportare'); return; }
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:16},{wch:14},{wch:8},{wch:10},{wch:8},{wch:28},{wch:7},{wch:6},{wch:6},{wch:14},{wch:12},{wch:22}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Storico Allenamenti');
+  const fname = `scheda_${activeProfileName().replace(/\s+/g,'_')}_backup_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  showToast('Backup Excel scaricato');
+}
+
+loadEntry();
+render();
+</script>
+
+<div id="app-switcher-bottom">
+  <button onclick="location.href='index.html'" style="background:#16243d;color:#8ea0bf;">🍽 Dieta</button>
+  <button onclick="location.href='palestra.html'" style="background:#ffcc33;color:#101a2c;">🏋 Palestra</button>
+</div>
+
 </body>
 </html>
