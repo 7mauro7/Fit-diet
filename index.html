@@ -10,10 +10,9 @@
   <link rel="apple-touch-icon" href="icon-jellyroger-180.png" />
   <link rel="icon" type="image/png" href="icon-jellyroger-32.png" />
   <title>Diario Alimentare</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    html, body, #root { height: 100%; margin: 0; background: #EFF3EC; }
-    body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+    html, body { height: 100%; margin: 0; background: #EFF3EC; overflow: hidden; }
+    #app-frame { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; border: none; }
     #app-switcher-bottom{
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 999;
       display: flex; font-family: -apple-system, sans-serif;
@@ -25,16 +24,14 @@
   </style>
 </head>
 <body>
+  <iframe id="app-frame" src="diario-app.html"></iframe>
   <div id="app-switcher-bottom">
     <button onclick="location.href='index.html'" style="background:#1F5C52;color:#fff;">🍽 Dieta</button>
     <button onclick="location.href='palestra.html'" style="background:#EFF3EC;color:#1F5C52;">🏋 Palestra</button>
   </div>
-  <div id="root"></div>
   <script>
-    // Misura l'altezza REALE del selettore (già renderizzato sopra), inclusa l'eventuale
-    // zona home-indicator dell'iPhone, cosi' l'app React sa esattamente quanto spazio lasciare.
-    window.__EXTRA_BOTTOM_INSET = document.getElementById('app-switcher-bottom').offsetHeight;
+    var switcherH = document.getElementById('app-switcher-bottom').offsetHeight;
+    document.getElementById('app-frame').style.bottom = switcherH + 'px';
   </script>
-  <script src="bundle.js?v=2"></script>
 </body>
 </html>
