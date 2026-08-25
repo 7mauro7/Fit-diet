@@ -14,14 +14,26 @@
   <style>
     html, body, #root { height: 100%; margin: 0; background: #EFF3EC; }
     body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+    #app-switcher-bottom{
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 999;
+      display: flex; font-family: -apple-system, sans-serif;
+      box-shadow: 0 -1px 6px rgba(0,0,0,.15);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      background: #fff;
+    }
+    #app-switcher-bottom button{ flex:1; padding:12px 0; border:none; font-weight:700; font-size:13px; }
+    .diario-app{
+      height: calc(100vh - 46px - env(safe-area-inset-bottom, 0px)) !important;
+      min-height: calc(100vh - 46px - env(safe-area-inset-bottom, 0px)) !important;
+    }
   </style>
 </head>
 <body>
-  <div id="app-switcher" style="position:sticky;top:0;z-index:999;display:flex;font-family:-apple-system,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.15);">
-    <button onclick="location.href='index.html'" style="flex:1;padding:11px 0;background:#1F5C52;color:#fff;border:none;font-weight:700;font-size:13px;">🍽 Dieta</button>
-    <button onclick="location.href='palestra.html'" style="flex:1;padding:11px 0;background:#EFF3EC;color:#1F5C52;border:none;font-weight:700;font-size:13px;">🏋 Palestra</button>
-  </div>
   <div id="root"></div>
   <script src="bundle.js"></script>
+  <div id="app-switcher-bottom">
+    <button onclick="location.href='index.html'" style="background:#1F5C52;color:#fff;">🍽 Dieta</button>
+    <button onclick="location.href='palestra.html'" style="background:#EFF3EC;color:#1F5C52;">🏋 Palestra</button>
+  </div>
 </body>
 </html>
