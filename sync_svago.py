@@ -27,6 +27,13 @@ SVAGO_TYPES = {
     "walking_speed", "cross_country_skiing", "skate_skiing",
     "lap_swimming", "open_water_swimming",
 }
+# Attività cardio "vecchio stile", prima dell'inizio della scheda strutturata:
+# niente percorso GPS da mostrare, sono sessioni indoor.
+CARDIO_TYPES = {
+    "cardio_training", "indoor_cardio", "elliptical", "fitness_equipment",
+    "indoor_cycling", "treadmill_running",
+}
+CARDIO_CUTOFF_DATE = os.environ.get("CARDIO_CUTOFF_DATE", "2026-08-17")
 
 
 def reverse_geocode(lat, lon):
@@ -110,8 +117,13 @@ def main():
     result = []
     for act in activities or []:
         type_key = ((act.get("activityType") or {}).get("typeKey") or "").lower()
-        if type_key not in SVAGO_TYPES:
+        activity_date = (act.get("startTimeLocal") or "").split(" ")[0]
+
+        is_svago = type_key in SVAGO_TYPES
+        is_old_cardio = type_key in CARDIO_TYPES and activity_date and activity_date < CARDIO_CUTOFF_DATE
+        if not is_svago and not is_old_cardio:
             continue
+        category = "svago" if is_svago else "cardio"
         activity_id = act.get("activityId")
 
         location = act.get("locationName")  # a volte Garmin lo fornisce già
@@ -124,7 +136,9 @@ def main():
                 location = reverse_geocode(lat, lon)
                 time.sleep(1)  # rispetta i limiti di Nominatim
 
-        if activity_id in track_cache:
+        if category == "cardio":
+            track = []  # sessioni indoor: nessun percorso GPS da mostrare
+        elif activity_id in track_cache:
             track = track_cache[activity_id]
         else:
             track = fetch_gps_track(client, activity_id)
@@ -132,9 +146,10 @@ def main():
 
         result.append({
             "activityId": activity_id,
+            "category": category,
             "type": type_key,
             "name": act.get("activityName"),
-            "date": (act.get("startTimeLocal") or "").split(" ")[0],
+            "date": activity_date,
             "startTimeLocal": act.get("startTimeLocal"),
             "durationSec": act.get("duration"),
             "distanceMeters": act.get("distance"),
