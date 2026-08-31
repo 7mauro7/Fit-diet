@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Svago">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-jellyroger-180.png">
+<link rel="icon" type="image/png" href="icon-jellyroger-32.png">
+<title>Svago</title>
+<style>
+  :root{
+    --bg:#0f1b1a; --surface:#16241f; --surface2:#1c2f28; --line:rgba(255,255,255,0.08);
+    --text:#eef7f0; --muted:#8fb0a0; --accent:#4fd68a; --accent2:#7cc8ff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,'Inter',sans-serif;}
+  body{padding-bottom:calc(70px + env(safe-area-inset-bottom,0px)); -webkit-tap-highlight-color:transparent;}
+  header{padding:22px 16px 10px;}
+  header h1{margin:0; font-size:22px;}
+  header .sub{color:var(--muted); font-size:13px; margin-top:4px;}
+  .relive-cta{display:inline-flex; align-items:center; gap:6px; margin:10px 16px 4px; padding:8px 14px; border-radius:10px; background:var(--surface2); border:1px solid var(--line); color:var(--accent2); text-decoration:none; font-size:13px; font-weight:600;}
+  .list{padding:8px 14px 20px;}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:14px;}
+  .card .head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
+  .card .title{font-weight:700; font-size:15px;}
+  .card .date{color:var(--muted); font-size:12px;}
+  .card .stats{display:flex; flex-wrap:wrap; gap:14px; margin:8px 0 10px; font-size:12.5px; color:var(--muted);}
+  .card .stats b{color:var(--text); font-weight:700;}
+  .card iframe{width:100%; height:280px; border:0; border-radius:10px; background:var(--surface2); display:block;}
+  .card .embed-fallback{font-size:12px; color:var(--muted); margin-top:6px;}
+  .card .embed-fallback a{color:var(--accent2);}
+  .relive-row{display:flex; gap:8px; margin-top:10px;}
+  .relive-row input{flex:1; background:var(--surface2); border:1px solid var(--line); border-radius:8px; color:var(--text); padding:8px 10px; font-size:13px;}
+  .relive-row button{padding:8px 12px; border-radius:8px; border:none; background:var(--accent); color:#06231a; font-weight:700; font-size:13px;}
+  .relive-link{display:inline-flex; align-items:center; gap:6px; margin-top:8px; color:#06231a; background:var(--accent); padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; font-size:13px;}
+  .empty, .loading{padding:40px 20px; text-align:center; color:var(--muted); font-size:14px;}
+  .generated-note{padding:0 16px 6px; color:var(--muted); font-size:11px;}
+
+  #app-switcher-bottom{position:fixed; left:0; right:0; bottom:0; z-index:999; display:flex; font-family:'Inter',sans-serif; box-shadow:0 -1px 6px rgba(0,0,0,.4); padding-bottom:env(safe-area-inset-bottom, 0px); background:#0d1626;}
+  #app-switcher-bottom button{flex:1; padding:12px 0; border:none; font-weight:700; font-size:13px; font-family:'Inter',sans-serif;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🚴 Svago</h1>
+  <div class="sub">Cammino, bici, escursioni — dati automatici da Garmin Connect</div>
+</header>
+<a class="relive-cta" href="https://www.relive.com/" target="_blank" rel="noopener">▶ Apri Relive</a>
+<div id="generatedNote" class="generated-note"></div>
+<div id="list" class="list"><div class="loading">Caricamento…</div></div>
+
+<div id="app-switcher-bottom">
+  <button onclick="location.href='index.html'" style="background:#16243d;color:#8ea0bf;">🍽 Dieta</button>
+  <button onclick="location.href='palestra.html'" style="background:#16243d;color:#8ea0bf;">🏋 Palestra</button>
+  <button onclick="location.href='svago.html'" style="background:#4fd68a;color:#06231a;">🚴 Svago</button>
+</div>
+
+<script>
+const TYPE_ICONS = {
+  running: '🏃', walking: '🚶', cycling: '🚴', hiking: '🥾', trail_running: '🏃',
+  mountain_biking: '🚵', road_biking: '🚴', track_running: '🏃', street_running: '🏃',
+  cross_country_skiing: '⛷️', skate_skiing: '⛷️',
+};
+const TYPE_LABELS = {
+  running: 'Corsa', walking: 'Camminata', cycling: 'Bici', hiking: 'Escursione',
+  trail_running: 'Corsa su sentiero', mountain_biking: 'Mountain bike', road_biking: 'Bici su strada',
+  track_running: 'Corsa in pista', street_running: 'Corsa su strada',
+  cross_country_skiing: 'Sci di fondo', skate_skiing: 'Sci skating',
+};
+
+function reliveKey(activityId){ return `svago_relive_${activityId}`; }
+
+function fmtDate(dateStr){
+  if(!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('it-IT', {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
+}
+function fmtDuration(sec){
+  if(!sec) return '-';
+  const h = Math.floor(sec/3600), m = Math.round((sec%3600)/60);
+  return h > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${m} min`;
+}
+function fmtDistance(m){
+  if(!m) return null;
+  return (m/1000).toLocaleString('it-IT', {maximumFractionDigits:2}) + ' km';
+}
+
+function activityCard(act){
+  const icon = TYPE_ICONS[act.type] || '🏅';
+  const label = TYPE_LABELS[act.type] || act.type;
+  const dist = fmtDistance(act.distanceMeters);
+  const savedRelive = localStorage.getItem(reliveKey(act.activityId));
+
+  const stats = [];
+  stats.push(`⏱ <b>${fmtDuration(act.durationSec)}</b>`);
+  if (dist) stats.push(`📏 <b>${dist}</b>`);
+  if (act.elevationGainM) stats.push(`⛰ <b>${Math.round(act.elevationGainM)} m</b>`);
+  if (act.calories) stats.push(`🔥 <b>${act.calories} kcal</b>`);
+  if (act.avgHr) stats.push(`❤️ <b>${act.avgHr}</b> media`);
+
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.innerHTML = `
+    <div class="head">
+      <div class="title">${icon} ${act.name || label}</div>
+      <div class="date">${fmtDate(act.date)}</div>
+    </div>
+    <div class="stats">${stats.map(s => `<span>${s}</span>`).join('')}</div>
+    ${act.embedUrl ? `
+      <iframe src="${act.embedUrl}" loading="lazy" allowfullscreen></iframe>
+      <div class="embed-fallback">Se la mappa non si vede, <a href="${act.embedUrl.replace('/embed/','/')}" target="_blank" rel="noopener">aprila su Garmin Connect</a>.</div>
+    ` : ''}
+    <div class="relive-slot"></div>
+  `;
+
+  const reliveSlot = el.querySelector('.relive-slot');
+  function renderReliveSlot(){
+    const link = localStorage.getItem(reliveKey(act.activityId));
+    if (link) {
+      reliveSlot.innerHTML = `<a class="relive-link" href="${link}" target="_blank" rel="noopener">▶ Guarda su Relive</a> <button class="action-edit" style="margin-left:8px;background:none;border:none;color:var(--muted);font-size:12px;text-decoration:underline;">modifica</button>`;
+      reliveSlot.querySelector('.action-edit').addEventListener('click', () => { localStorage.removeItem(reliveKey(act.activityId)); renderReliveSlot(); });
+    } else {
+      reliveSlot.innerHTML = `
+        <div class="relive-row">
+          <input type="url" placeholder="Incolla qui il link Relive di questa attività">
+          <button>Salva</button>
+        </div>`;
+      const input = reliveSlot.querySelector('input');
+      reliveSlot.querySelector('button').addEventListener('click', () => {
+        const v = input.value.trim();
+        if (!v) return;
+        localStorage.setItem(reliveKey(act.activityId), v);
+        renderReliveSlot();
+      });
+    }
+  }
+  renderReliveSlot();
+
+  return el;
+}
+
+async function load(){
+  const listEl = document.getElementById('list');
+  try{
+    const res = await fetch('svago-data.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('not found');
+    const data = await res.json();
+    const activities = data.activities || [];
+
+    document.getElementById('generatedNote').textContent = data.generatedAt
+      ? `Ultimo aggiornamento dati: ${fmtDate(data.generatedAt)}`
+      : '';
+
+    if (!activities.length) {
+      listEl.innerHTML = '<div class="empty">Nessuna attività trovata negli ultimi giorni.<br>La sincronizzazione automatica gira ogni notte.</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    activities.forEach(act => listEl.appendChild(activityCard(act)));
+  }catch(e){
+    listEl.innerHTML = '<div class="empty">Nessun dato ancora disponibile.<br>La prima sincronizzazione automatica arriverà stanotte, oppure lanciala a mano dal tab "Actions" su GitHub.</div>';
+  }
+}
+load();
+</script>
+</body>
+</html>
