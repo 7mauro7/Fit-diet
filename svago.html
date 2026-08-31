@@ -96,6 +96,45 @@ const CATEGORIES = [
 let activeFilter = 'tutte';
 let allActivities = [];
 
+const HR_ZONE_COLORS = ['#4fd68a', '#7cc8ff', '#ffcc33', '#ff8a5c', '#ff3b6b'];
+
+function hrLineChartSvg(series){
+  if (!series || series.length < 2) return '';
+  const w = 320, h = 70, pad = 4;
+  const hrs = series.map(p => p.hr);
+  const min = Math.min(...hrs), max = Math.max(...hrs);
+  const range = (max - min) || 1;
+  const x = (i) => pad + (i * (w - pad * 2)) / (series.length - 1);
+  const y = (hr) => h - pad - ((hr - min) / range) * (h - pad * 2);
+  const path = series.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.hr).toFixed(1)}`).join(' ');
+  return `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="display:block;margin-top:8px;">
+      <path d="${path}" fill="none" stroke="var(--accent2)" stroke-width="1.6"/>
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:-2px;">
+      <span>${min} bpm</span><span>${max} bpm</span>
+    </div>`;
+}
+
+function hrZonesHtml(zones){
+  const withTime = (zones || []).filter(z => (z.secs || 0) > 0);
+  if (!withTime.length) return '';
+  const total = withTime.reduce((s, z) => s + z.secs, 0) || 1;
+  const bar = withTime.map(z => {
+    const pct = Math.round((z.secs / total) * 100);
+    const color = HR_ZONE_COLORS[(z.zone || 1) - 1] || '#8ea0bf';
+    return `<div style="flex:${pct};background:${color};height:100%;"></div>`;
+  }).join('');
+  const legend = withTime.map(z => {
+    const mins = Math.round(z.secs / 60);
+    const color = HR_ZONE_COLORS[(z.zone || 1) - 1] || '#8ea0bf';
+    return `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="width:8px;height:8px;border-radius:2px;background:${color};display:inline-block;"></span>Z${z.zone} ${mins} min</span>`;
+  }).join('');
+  return `
+    <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--surface2);margin-top:10px;">${bar}</div>
+    <div style="margin-top:6px;font-size:11px;color:var(--muted);">${legend}</div>`;
+}
+
 function reliveKey(activityId){ return `svago_relive_${activityId}`; }
 function reliveDismissKey(activityId){ return `svago_relive_dismissed_${activityId}`; }
 
@@ -163,7 +202,7 @@ function activityCard(act){
           ? `<iframe src="${act.embedUrl}" loading="lazy" allowfullscreen></iframe>
              <div class="embed-fallback">Se la mappa non si vede, <a href="${act.embedUrl.replace('/embed/','/')}" target="_blank" rel="noopener">aprila su Garmin Connect</a>.</div>`
           : ''
-    ) : ''}
+    ) : `${hrZonesHtml(act.zones)}${hrLineChartSvg(act.hrSeries)}`}
     <div class="relive-slot"></div>
   `;
 
