@@ -39,10 +39,6 @@
   .card .track-map{width:100%; height:280px; border-radius:10px; background:var(--surface2); margin-top:4px;}
   .card .embed-fallback{font-size:12px; color:var(--muted); margin-top:6px;}
   .card .embed-fallback a{color:var(--accent2);}
-  .relive-row{display:flex; gap:8px; margin-top:10px;}
-  .relive-row input{flex:1; background:var(--surface2); border:1px solid var(--line); border-radius:8px; color:var(--text); padding:8px 10px; font-size:13px;}
-  .relive-row button{padding:8px 12px; border-radius:8px; border:none; background:var(--accent); color:#06231a; font-weight:700; font-size:13px;}
-  .relive-link{display:inline-flex; align-items:center; gap:6px; margin-top:8px; color:#06231a; background:var(--accent); padding:8px 12px; border-radius:8px; text-decoration:none; font-weight:700; font-size:13px;}
   .empty, .loading{padding:40px 20px; text-align:center; color:var(--muted); font-size:14px;}
   .generated-note{padding:0 16px 6px; color:var(--muted); font-size:11px;}
 
@@ -135,29 +131,6 @@ function hrZonesHtml(zones){
     <div style="margin-top:6px;font-size:11px;color:var(--muted);">${legend}</div>`;
 }
 
-function reliveKey(activityId){ return `svago_relive_${activityId}`; }
-function reliveDismissKey(activityId){ return `svago_relive_dismissed_${activityId}`; }
-
-const RELIVE_EMBEDLY_KEY = 'f1631a41cb254ca5b035dc5747a5bd75';
-
-function reliveEmbedUrl(shareLink){
-  // Da un link tipo https://www.relive.com/view/vXXXXXXXXX ricava l'ID e costruisce
-  // l'iframe di embed pubblico (via Embedly), che mostra il video animato vero.
-  const match = shareLink.match(/relive\.(?:com|cc)\/view\/([A-Za-z0-9_-]+)/);
-  if (!match) return null;
-  const id = match[1];
-  const viewUrl = `https://www.relive.com/view/${id}`;
-  const params = new URLSearchParams({
-    src: `${viewUrl}/widget?r=embed-site`,
-    url: `${viewUrl}?r=embed-site`,
-    image: `${viewUrl}/png?x-ref=embed-site`,
-    key: RELIVE_EMBEDLY_KEY,
-    type: 'text/html',
-    schema: 'relive',
-  });
-  return `https://cdn.embedly.com/widgets/media.html?${params.toString()}`;
-}
-
 function fmtDate(dateStr){
   if(!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
@@ -177,7 +150,6 @@ function activityCard(act){
   const icon = TYPE_ICONS[act.type] || '🏅';
   const label = TYPE_LABELS[act.type] || act.type;
   const dist = fmtDistance(act.distanceMeters);
-  const savedRelive = localStorage.getItem(reliveKey(act.activityId));
 
   const stats = [];
   stats.push(`⏱ <b>${fmtDuration(act.durationSec)}</b>`);
@@ -203,7 +175,6 @@ function activityCard(act){
                <div class="embed-fallback">Se la mappa non si vede, <a href="${act.embedUrl.replace('/embed/','/')}" target="_blank" rel="noopener">aprila su Garmin Connect</a>.</div>`
             : '') + `${hrZonesHtml(act.zones)}${hrLineChartSvg(act.hrSeries)}`
       : `${hrZonesHtml(act.zones)}${hrLineChartSvg(act.hrSeries)}`}
-    <div class="relive-slot"></div>
   `;
 
   if (act.category !== 'cardio' && act.type !== 'lap_swimming' && act.track && act.track.length > 1) {
@@ -221,52 +192,6 @@ function activityCard(act){
       map.fitBounds(line.getBounds(), { padding: [16, 16] });
     });
   }
-
-  const reliveSlot = el.querySelector('.relive-slot');
-  if (act.category === 'cardio') {
-    reliveSlot.remove();
-    return el;
-  }
-  function renderReliveSlot(){
-    const manualLink = localStorage.getItem(reliveKey(act.activityId));
-    const dismissed = localStorage.getItem(reliveDismissKey(act.activityId)) === '1';
-    const link = manualLink || (dismissed ? null : act.reliveUrl) || null;
-    const isAuto = !manualLink && !!act.reliveUrl && !dismissed;
-    if (link) {
-      const embedUrl = reliveEmbedUrl(link);
-      reliveSlot.innerHTML = `
-        ${isAuto ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;">🔗 Video abbinato automaticamente per data — <button class="action-wrong" style="background:none;border:none;color:var(--accent2);font-size:11px;text-decoration:underline;padding:0;">non è quello giusto?</button></div>` : ''}
-        ${embedUrl
-          ? `<div style="position:relative;padding-bottom:78.2%;height:0;overflow:hidden;border-radius:10px;margin-top:10px;">
-               <iframe src="${embedUrl}" frameborder="0" scrolling="no" allowfullscreen loading="lazy"
-                 style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"></iframe>
-             </div>`
-          : `<a class="relive-link" href="${link}" target="_blank" rel="noopener">▶ Guarda su Relive</a>`
-        }
-        ${!isAuto ? `<button class="action-edit" style="margin-top:8px;display:block;background:none;border:none;color:var(--muted);font-size:12px;text-decoration:underline;padding:0;">rimuovi/modifica link</button>` : ''}`;
-      const editBtn = reliveSlot.querySelector('.action-edit');
-      if (editBtn) editBtn.addEventListener('click', () => { localStorage.removeItem(reliveKey(act.activityId)); renderReliveSlot(); });
-      const wrongBtn = reliveSlot.querySelector('.action-wrong');
-      if (wrongBtn) wrongBtn.addEventListener('click', () => {
-        localStorage.setItem(reliveDismissKey(act.activityId), '1');
-        renderReliveSlot();
-      });
-    } else {
-      reliveSlot.innerHTML = `
-        <div class="relive-row">
-          <input type="url" placeholder="Incolla qui il link Relive di questa attività">
-          <button>Salva</button>
-        </div>`;
-      const input = reliveSlot.querySelector('input');
-      reliveSlot.querySelector('button').addEventListener('click', () => {
-        const v = input.value.trim();
-        if (!v) return;
-        localStorage.setItem(reliveKey(act.activityId), v);
-        renderReliveSlot();
-      });
-    }
-  }
-  renderReliveSlot();
 
   return el;
 }
