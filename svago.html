@@ -72,6 +72,8 @@ const TYPE_ICONS = {
   running: '🏃', walking: '🚶', cycling: '🚴', hiking: '🥾', trail_running: '🏃',
   mountain_biking: '🚵', road_biking: '🚴', track_running: '🏃', street_running: '🏃',
   cross_country_skiing: '⛷️', skate_skiing: '⛷️', lap_swimming: '🏊', open_water_swimming: '🏊',
+  cardio_training: '💛', indoor_cardio: '💛', elliptical: '💛', fitness_equipment: '💛',
+  indoor_cycling: '💛', treadmill_running: '💛',
 };
 const TYPE_LABELS = {
   running: 'Corsa', walking: 'Camminata', cycling: 'Bici', hiking: 'Escursione',
@@ -79,6 +81,8 @@ const TYPE_LABELS = {
   track_running: 'Corsa in pista', street_running: 'Corsa su strada',
   cross_country_skiing: 'Sci di fondo', skate_skiing: 'Sci skating',
   lap_swimming: 'Nuoto (piscina)', open_water_swimming: 'Nuoto (acque libere)',
+  cardio_training: 'Cardio', indoor_cardio: 'Cardio indoor', elliptical: 'Ellittica',
+  fitness_equipment: 'Cardio', indoor_cycling: 'Bici indoor', treadmill_running: 'Tapis roulant',
 };
 // Raggruppamento per i filtri: alcune varietà Garmin confluiscono nella stessa categoria.
 const CATEGORIES = [
@@ -87,6 +91,7 @@ const CATEGORIES = [
   { key: 'camminata', label: '🚶 Camminata', types: ['walking', 'hiking'] },
   { key: 'bici', label: '🚴 Bici', types: ['cycling', 'mountain_biking', 'road_biking'] },
   { key: 'nuoto', label: '🏊 Nuoto', types: ['lap_swimming', 'open_water_swimming'] },
+  { key: 'cardio', label: '💛 Cardio (prima del 17/8)', types: ['cardio_training', 'indoor_cardio', 'elliptical', 'fitness_equipment', 'indoor_cycling', 'treadmill_running'] },
 ];
 let activeFilter = 'tutte';
 let allActivities = [];
@@ -151,17 +156,18 @@ function activityCard(act){
     </div>
     ${act.location ? `<div class="location">📍 ${act.location}</div>` : ''}
     <div class="stats">${stats.map(s => `<span>${s}</span>`).join('')}</div>
-    ${act.track && act.track.length > 1
-      ? `<div class="track-map" id="map-${act.activityId}"></div>`
-      : act.embedUrl
-        ? `<iframe src="${act.embedUrl}" loading="lazy" allowfullscreen></iframe>
-           <div class="embed-fallback">Se la mappa non si vede, <a href="${act.embedUrl.replace('/embed/','/')}" target="_blank" rel="noopener">aprila su Garmin Connect</a>.</div>`
-        : ''
-    }
+    ${act.category !== 'cardio' ? (
+      act.track && act.track.length > 1
+        ? `<div class="track-map" id="map-${act.activityId}"></div>`
+        : act.embedUrl
+          ? `<iframe src="${act.embedUrl}" loading="lazy" allowfullscreen></iframe>
+             <div class="embed-fallback">Se la mappa non si vede, <a href="${act.embedUrl.replace('/embed/','/')}" target="_blank" rel="noopener">aprila su Garmin Connect</a>.</div>`
+          : ''
+    ) : ''}
     <div class="relive-slot"></div>
   `;
 
-  if (act.track && act.track.length > 1) {
+  if (act.category !== 'cardio' && act.track && act.track.length > 1) {
     // Il contenitore deve essere già nel DOM prima che Leaflet possa calcolarne le dimensioni,
     // quindi la mappa viene disegnata dopo che questa card è stata inserita nella pagina.
     requestAnimationFrame(() => {
@@ -178,6 +184,10 @@ function activityCard(act){
   }
 
   const reliveSlot = el.querySelector('.relive-slot');
+  if (act.category === 'cardio') {
+    reliveSlot.remove();
+    return el;
+  }
   function renderReliveSlot(){
     const manualLink = localStorage.getItem(reliveKey(act.activityId));
     const dismissed = localStorage.getItem(reliveDismissKey(act.activityId)) === '1';
