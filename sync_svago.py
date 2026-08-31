@@ -57,6 +57,45 @@ def reverse_geocode(lat, lon):
         return None
 
 
+def fetch_hr_detail(client, activity_id):
+    """Recupera le zone di frequenza cardiaca e la serie temporale (per il grafico),
+    stessa logica già usata per il cardio della palestra."""
+    zones = []
+    try:
+        zone_data = client.get_activity_hr_in_timezones(activity_id)
+        for z in zone_data or []:
+            zones.append({"zone": z.get("zoneNumber"), "secs": z.get("secsInZone")})
+    except Exception as e:
+        print(f"Zone FC non disponibili per attività {activity_id}: {e}")
+
+    hr_series = []
+    try:
+        details = client.get_activity_details(activity_id, maxchart=2000)
+        descriptors = details.get("metricDescriptors") or []
+        hr_index = None
+        time_index = None
+        for desc in descriptors:
+            dkey = desc.get("key", "")
+            if dkey == "directHeartRate":
+                hr_index = desc.get("metricsIndex")
+            elif dkey in ("directTimestamp", "sumElapsedDuration", "sumDuration") and time_index is None:
+                time_index = desc.get("metricsIndex")
+        metrics = details.get("activityDetailMetrics") or []
+        if hr_index is not None:
+            for m in metrics:
+                vals = m.get("metrics") or []
+                if len(vals) > hr_index and vals[hr_index] is not None:
+                    t = vals[time_index] if (time_index is not None and len(vals) > time_index) else len(hr_series)
+                    hr_series.append({"t": t, "hr": round(vals[hr_index])})
+        if len(hr_series) > 150:
+            step = len(hr_series) / 150
+            hr_series = [hr_series[int(i * step)] for i in range(150)]
+    except Exception as e:
+        print(f"Serie FC dettagliata non disponibile per attività {activity_id}: {e}")
+
+    return zones, hr_series
+
+
 def fetch_gps_track(client, activity_id, max_points=150):
     """Scarica il tracciato GPS dell'attività (formato GPX, lo standard per le tracce)
     e lo riduce a un numero ragionevole di punti, per disegnarlo poi con OpenStreetMap
@@ -92,9 +131,10 @@ def main():
         sys.exit(1)
 
     # Riusa le posizioni e i tracciati già calcolati in run precedenti, per non
-    # richiamare il servizio di geocodifica o riscaricare i GPX ogni volta.
+    # richiamare il servizio di geocodifica o riscaricare i GPX/dettagli FC ogni volta.
     location_cache = {}
     track_cache = {}
+    hr_detail_cache = {}
     if os.path.exists(OUTPUT_FILE):
         try:
             with open(OUTPUT_FILE, encoding="utf-8") as f:
@@ -104,6 +144,8 @@ def main():
                     location_cache[a["activityId"]] = a["location"]
                 if a.get("activityId") and a.get("track"):
                     track_cache[a["activityId"]] = a["track"]
+                if a.get("activityId") and (a.get("zones") or a.get("hrSeries")):
+                    hr_detail_cache[a["activityId"]] = (a.get("zones") or [], a.get("hrSeries") or [])
         except Exception:
             pass
 
@@ -138,11 +180,18 @@ def main():
 
         if category == "cardio":
             track = []  # sessioni indoor: nessun percorso GPS da mostrare
-        elif activity_id in track_cache:
-            track = track_cache[activity_id]
+            if activity_id in hr_detail_cache:
+                zones, hr_series = hr_detail_cache[activity_id]
+            else:
+                zones, hr_series = fetch_hr_detail(client, activity_id)
+                hr_detail_cache[activity_id] = (zones, hr_series)
         else:
-            track = fetch_gps_track(client, activity_id)
-            track_cache[activity_id] = track
+            zones, hr_series = [], []
+            if activity_id in track_cache:
+                track = track_cache[activity_id]
+            else:
+                track = fetch_gps_track(client, activity_id)
+                track_cache[activity_id] = track
 
         result.append({
             "activityId": activity_id,
@@ -159,6 +208,8 @@ def main():
             "maxHr": act.get("maxHR"),
             "location": location,
             "track": track,
+            "zones": zones,
+            "hrSeries": hr_series,
             "embedUrl": f"https://connect.garmin.com/modern/activity/embed/{activity_id}" if activity_id else None,
         })
 
