@@ -89,6 +89,7 @@ let activeFilter = 'tutte';
 let allActivities = [];
 
 function reliveKey(activityId){ return `svago_relive_${activityId}`; }
+function reliveDismissKey(activityId){ return `svago_relive_dismissed_${activityId}`; }
 
 const RELIVE_EMBEDLY_KEY = 'f1631a41cb254ca5b035dc5747a5bd75';
 
@@ -156,10 +157,14 @@ function activityCard(act){
 
   const reliveSlot = el.querySelector('.relive-slot');
   function renderReliveSlot(){
-    const link = localStorage.getItem(reliveKey(act.activityId));
+    const manualLink = localStorage.getItem(reliveKey(act.activityId));
+    const dismissed = localStorage.getItem(reliveDismissKey(act.activityId)) === '1';
+    const link = manualLink || (dismissed ? null : act.reliveUrl) || null;
+    const isAuto = !manualLink && !!act.reliveUrl && !dismissed;
     if (link) {
       const embedUrl = reliveEmbedUrl(link);
       reliveSlot.innerHTML = `
+        ${isAuto ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;">🔗 Video abbinato automaticamente per data — <button class="action-wrong" style="background:none;border:none;color:var(--accent2);font-size:11px;text-decoration:underline;padding:0;">non è quello giusto?</button></div>` : ''}
         ${embedUrl
           ? `<div style="position:relative;padding-bottom:78.2%;height:0;overflow:hidden;border-radius:10px;margin-top:10px;">
                <iframe src="${embedUrl}" frameborder="0" scrolling="no" allowfullscreen loading="lazy"
@@ -167,8 +172,14 @@ function activityCard(act){
              </div>`
           : `<a class="relive-link" href="${link}" target="_blank" rel="noopener">▶ Guarda su Relive</a>`
         }
-        <button class="action-edit" style="margin-top:8px;display:block;background:none;border:none;color:var(--muted);font-size:12px;text-decoration:underline;padding:0;">rimuovi/modifica link</button>`;
-      reliveSlot.querySelector('.action-edit').addEventListener('click', () => { localStorage.removeItem(reliveKey(act.activityId)); renderReliveSlot(); });
+        ${!isAuto ? `<button class="action-edit" style="margin-top:8px;display:block;background:none;border:none;color:var(--muted);font-size:12px;text-decoration:underline;padding:0;">rimuovi/modifica link</button>` : ''}`;
+      const editBtn = reliveSlot.querySelector('.action-edit');
+      if (editBtn) editBtn.addEventListener('click', () => { localStorage.removeItem(reliveKey(act.activityId)); renderReliveSlot(); });
+      const wrongBtn = reliveSlot.querySelector('.action-wrong');
+      if (wrongBtn) wrongBtn.addEventListener('click', () => {
+        localStorage.setItem(reliveDismissKey(act.activityId), '1');
+        renderReliveSlot();
+      });
     } else {
       reliveSlot.innerHTML = `
         <div class="relive-row">
