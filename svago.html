@@ -174,11 +174,11 @@ function activityCard(act){
       const mapEl = el.querySelector(`#map-${act.activityId}`);
       if (!mapEl) return;
       const map = L.map(mapEl, { zoomControl: false, attributionControl: true }).setView(act.track[0], 14);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19, attribution: '© OpenStreetMap'
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19, attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics'
       }).addTo(map);
-      const line = L.polyline(act.track, { color: '#4fd68a', weight: 4 }).addTo(map);
-      L.circleMarker(act.track[0], { radius: 5, color: '#7cc8ff', fillOpacity: 1 }).addTo(map);
+      const line = L.polyline(act.track, { color: '#ff3b6b', weight: 4 }).addTo(map);
+      L.circleMarker(act.track[0], { radius: 5, color: '#ffffff', fillColor: '#ff3b6b', fillOpacity: 1, weight: 2 }).addTo(map);
       map.fitBounds(line.getBounds(), { padding: [16, 16] });
     });
   }
