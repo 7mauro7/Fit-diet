@@ -11,6 +11,7 @@ import sys
 import time
 import urllib.request
 import urllib.parse
+import xml.etree.ElementTree as ET
 from datetime import date, timedelta
 
 from garminconnect import Garmin
@@ -49,14 +50,44 @@ def reverse_geocode(lat, lon):
         return None
 
 
+def fetch_gps_track(client, activity_id, max_points=150):
+    """Scarica il tracciato GPS dell'attività (formato GPX, lo standard per le tracce)
+    e lo riduce a un numero ragionevole di punti, per disegnarlo poi con OpenStreetMap
+    senza dipendere dalla privacy dell'attività su Garmin Connect."""
+    try:
+        try:
+            fmt = client.ActivityDownloadFormat.GPX
+        except AttributeError:
+            fmt = "gpx"
+        gpx_bytes = client.download_activity(activity_id, dl_fmt=fmt)
+        root = ET.fromstring(gpx_bytes)
+
+        points = []
+        for el in root.iter():
+            if el.tag.endswith("trkpt"):
+                lat = el.get("lat")
+                lon = el.get("lon")
+                if lat and lon:
+                    points.append([round(float(lat), 5), round(float(lon), 5)])
+
+        if len(points) > max_points:
+            step = len(points) / max_points
+            points = [points[int(i * step)] for i in range(max_points)]
+        return points
+    except Exception as e:
+        print(f"Tracciato GPS non disponibile per attività {activity_id}: {e}")
+        return []
+
+
 def main():
     if not GARMIN_EMAIL or not GARMIN_PASSWORD:
         print("GARMIN_EMAIL / GARMIN_PASSWORD non impostate, esco.")
         sys.exit(1)
 
-    # Riusa le posizioni già calcolate in run precedenti, per non richiamare
-    # il servizio di geocodifica ogni volta per le stesse attività.
+    # Riusa le posizioni e i tracciati già calcolati in run precedenti, per non
+    # richiamare il servizio di geocodifica o riscaricare i GPX ogni volta.
     location_cache = {}
+    track_cache = {}
     if os.path.exists(OUTPUT_FILE):
         try:
             with open(OUTPUT_FILE, encoding="utf-8") as f:
@@ -64,6 +95,8 @@ def main():
             for a in prev.get("activities", []):
                 if a.get("activityId") and a.get("location"):
                     location_cache[a["activityId"]] = a["location"]
+                if a.get("activityId") and a.get("track"):
+                    track_cache[a["activityId"]] = a["track"]
         except Exception:
             pass
 
@@ -91,6 +124,12 @@ def main():
                 location = reverse_geocode(lat, lon)
                 time.sleep(1)  # rispetta i limiti di Nominatim
 
+        if activity_id in track_cache:
+            track = track_cache[activity_id]
+        else:
+            track = fetch_gps_track(client, activity_id)
+            track_cache[activity_id] = track
+
         result.append({
             "activityId": activity_id,
             "type": type_key,
@@ -104,6 +143,7 @@ def main():
             "avgHr": act.get("averageHR"),
             "maxHr": act.get("maxHR"),
             "location": location,
+            "track": track,
             "embedUrl": f"https://connect.garmin.com/modern/activity/embed/{activity_id}" if activity_id else None,
         })
 
