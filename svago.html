@@ -195,14 +195,14 @@ function activityCard(act){
     </div>
     ${act.location ? `<div class="location">📍 ${act.location}</div>` : ''}
     <div class="stats">${stats.map(s => `<span>${s}</span>`).join('')}</div>
-    ${act.category !== 'cardio' ? (
-      act.track && act.track.length > 1
-        ? `<div class="track-map" id="map-${act.activityId}"></div>`
-        : act.embedUrl
-          ? `<iframe src="${act.embedUrl}" loading="lazy" allowfullscreen></iframe>
-             <div class="embed-fallback">Se la mappa non si vede, <a href="${act.embedUrl.replace('/embed/','/')}" target="_blank" rel="noopener">aprila su Garmin Connect</a>.</div>`
-          : ''
-    ) : `${hrZonesHtml(act.zones)}${hrLineChartSvg(act.hrSeries)}`}
+    ${act.category !== 'cardio'
+      ? (act.track && act.track.length > 1
+          ? `<div class="track-map" id="map-${act.activityId}"></div>`
+          : act.embedUrl
+            ? `<iframe src="${act.embedUrl}" loading="lazy" allowfullscreen></iframe>
+               <div class="embed-fallback">Se la mappa non si vede, <a href="${act.embedUrl.replace('/embed/','/')}" target="_blank" rel="noopener">aprila su Garmin Connect</a>.</div>`
+            : '') + `${hrZonesHtml(act.zones)}${hrLineChartSvg(act.hrSeries)}`
+      : `${hrZonesHtml(act.zones)}${hrLineChartSvg(act.hrSeries)}`}
     <div class="relive-slot"></div>
   `;
 
