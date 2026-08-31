@@ -178,20 +178,19 @@ def main():
                 location = reverse_geocode(lat, lon)
                 time.sleep(1)  # rispetta i limiti di Nominatim
 
+        if activity_id in hr_detail_cache:
+            zones, hr_series = hr_detail_cache[activity_id]
+        else:
+            zones, hr_series = fetch_hr_detail(client, activity_id)
+            hr_detail_cache[activity_id] = (zones, hr_series)
+
         if category == "cardio":
             track = []  # sessioni indoor: nessun percorso GPS da mostrare
-            if activity_id in hr_detail_cache:
-                zones, hr_series = hr_detail_cache[activity_id]
-            else:
-                zones, hr_series = fetch_hr_detail(client, activity_id)
-                hr_detail_cache[activity_id] = (zones, hr_series)
+        elif activity_id in track_cache:
+            track = track_cache[activity_id]
         else:
-            zones, hr_series = [], []
-            if activity_id in track_cache:
-                track = track_cache[activity_id]
-            else:
-                track = fetch_gps_track(client, activity_id)
-                track_cache[activity_id] = track
+            track = fetch_gps_track(client, activity_id)
+            track_cache[activity_id] = track
 
         result.append({
             "activityId": activity_id,
