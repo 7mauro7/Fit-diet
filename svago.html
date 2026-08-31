@@ -27,6 +27,10 @@
   .card .head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
   .card .title{font-weight:700; font-size:15px;}
   .card .date{color:var(--muted); font-size:12px;}
+  .card .location{color:var(--accent2); font-size:12px; margin-top:2px;}
+  .filters{display:flex; gap:8px; padding:4px 14px 10px; overflow-x:auto;}
+  .filters button{flex-shrink:0; padding:7px 14px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--muted); font-size:13px; font-weight:600;}
+  .filters button.active{background:var(--accent); color:#06231a; border-color:var(--accent);}
   .card .stats{display:flex; flex-wrap:wrap; gap:14px; margin:8px 0 10px; font-size:12.5px; color:var(--muted);}
   .card .stats b{color:var(--text); font-weight:700;}
   .card iframe{width:100%; height:280px; border:0; border-radius:10px; background:var(--surface2); display:block;}
@@ -51,6 +55,7 @@
 </header>
 <a class="relive-cta" href="https://www.relive.com/" target="_blank" rel="noopener">▶ Apri Relive</a>
 <div id="generatedNote" class="generated-note"></div>
+<div id="filters" class="filters"></div>
 <div id="list" class="list"><div class="loading">Caricamento…</div></div>
 
 <div id="app-switcher-bottom">
@@ -63,14 +68,25 @@
 const TYPE_ICONS = {
   running: '🏃', walking: '🚶', cycling: '🚴', hiking: '🥾', trail_running: '🏃',
   mountain_biking: '🚵', road_biking: '🚴', track_running: '🏃', street_running: '🏃',
-  cross_country_skiing: '⛷️', skate_skiing: '⛷️',
+  cross_country_skiing: '⛷️', skate_skiing: '⛷️', lap_swimming: '🏊', open_water_swimming: '🏊',
 };
 const TYPE_LABELS = {
   running: 'Corsa', walking: 'Camminata', cycling: 'Bici', hiking: 'Escursione',
   trail_running: 'Corsa su sentiero', mountain_biking: 'Mountain bike', road_biking: 'Bici su strada',
   track_running: 'Corsa in pista', street_running: 'Corsa su strada',
   cross_country_skiing: 'Sci di fondo', skate_skiing: 'Sci skating',
+  lap_swimming: 'Nuoto (piscina)', open_water_swimming: 'Nuoto (acque libere)',
 };
+// Raggruppamento per i filtri: alcune varietà Garmin confluiscono nella stessa categoria.
+const CATEGORIES = [
+  { key: 'tutte', label: 'Tutte', types: null },
+  { key: 'corsa', label: '🏃 Corsa', types: ['running', 'trail_running', 'track_running', 'street_running'] },
+  { key: 'camminata', label: '🚶 Camminata', types: ['walking', 'hiking'] },
+  { key: 'bici', label: '🚴 Bici', types: ['cycling', 'mountain_biking', 'road_biking'] },
+  { key: 'nuoto', label: '🏊 Nuoto', types: ['lap_swimming', 'open_water_swimming'] },
+];
+let activeFilter = 'tutte';
+let allActivities = [];
 
 function reliveKey(activityId){ return `svago_relive_${activityId}`; }
 
@@ -109,6 +125,7 @@ function activityCard(act){
       <div class="title">${icon} ${act.name || label}</div>
       <div class="date">${fmtDate(act.date)}</div>
     </div>
+    ${act.location ? `<div class="location">📍 ${act.location}</div>` : ''}
     <div class="stats">${stats.map(s => `<span>${s}</span>`).join('')}</div>
     ${act.embedUrl ? `
       <iframe src="${act.embedUrl}" loading="lazy" allowfullscreen></iframe>
@@ -143,24 +160,51 @@ function activityCard(act){
   return el;
 }
 
+function renderFilters(){
+  const el = document.getElementById('filters');
+  el.innerHTML = CATEGORIES.map(c =>
+    `<button data-key="${c.key}" class="${c.key === activeFilter ? 'active' : ''}">${c.label}</button>`
+  ).join('');
+  el.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeFilter = btn.dataset.key;
+      renderFilters();
+      renderList();
+    });
+  });
+}
+
+function renderList(){
+  const listEl = document.getElementById('list');
+  const cat = CATEGORIES.find(c => c.key === activeFilter);
+  const filtered = (!cat || !cat.types) ? allActivities : allActivities.filter(a => cat.types.includes(a.type));
+
+  if (!filtered.length) {
+    listEl.innerHTML = '<div class="empty">Nessuna attività in questa categoria.</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  filtered.forEach(act => listEl.appendChild(activityCard(act)));
+}
+
 async function load(){
   const listEl = document.getElementById('list');
   try{
     const res = await fetch('svago-data.json', { cache: 'no-store' });
     if (!res.ok) throw new Error('not found');
     const data = await res.json();
-    const activities = data.activities || [];
+    allActivities = data.activities || [];
 
     document.getElementById('generatedNote').textContent = data.generatedAt
       ? `Ultimo aggiornamento dati: ${fmtDate(data.generatedAt)}`
       : '';
 
-    if (!activities.length) {
+    if (!allActivities.length) {
       listEl.innerHTML = '<div class="empty">Nessuna attività trovata negli ultimi giorni.<br>La sincronizzazione automatica gira ogni notte.</div>';
       return;
     }
-    listEl.innerHTML = '';
-    activities.forEach(act => listEl.appendChild(activityCard(act)));
+    renderFilters();
+    renderList();
   }catch(e){
     listEl.innerHTML = '<div class="empty">Nessun dato ancora disponibile.<br>La prima sincronizzazione automatica arriverà stanotte, oppure lanciala a mano dal tab "Actions" su GitHub.</div>';
   }
