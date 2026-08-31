@@ -12,6 +12,7 @@
 <title>Svago</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
 <style>
   :root{
     --bg:#0f1b1a; --surface:#16241f; --surface2:#1c2f28; --line:rgba(255,255,255,0.08);
@@ -186,6 +187,19 @@ function activityCard(act){
         maxZoom: 19, attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics'
       }).addTo(map);
       const line = L.polyline(act.track, { color: '#ff3b6b', weight: 4 }).addTo(map);
+      if (typeof L.polylineDecorator === 'function') {
+        try {
+          L.polylineDecorator(line, {
+            patterns: [{
+              offset: '10%', repeat: '25%',
+              symbol: L.Symbol.arrowHead({
+                pixelSize: 10, polygon: false,
+                pathOptions: { color: '#ffffff', weight: 2, opacity: 0.9 }
+              })
+            }]
+          }).addTo(map);
+        } catch (e) { /* niente frecce se qualcosa va storto, la mappa resta comunque leggibile */ }
+      }
       const startIcon = L.divIcon({ className: '', html: '<div style="font-size:22px;line-height:1;transform:translate(-2px,-2px);">🟠</div>', iconSize: [22,22], iconAnchor: [11,11] });
       const endIcon = L.divIcon({ className: '', html: '<div style="font-size:22px;line-height:1;transform:translate(-2px,-18px);">🏁</div>', iconSize: [22,22], iconAnchor: [11,22] });
       L.marker(act.track[0], { icon: startIcon, title: 'Partenza' }).addTo(map);
