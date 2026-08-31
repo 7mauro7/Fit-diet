@@ -1,4 +1,65 @@
 {
-  "generatedAt": null,
-  "activities": []
+  "generatedAt": "2026-08-31",
+  "activities": [
+    {
+      "activityId": 24140226667,
+      "type": "walking",
+      "name": "Bagnolo San Vito Camminata",
+      "date": "2026-08-27",
+      "startTimeLocal": "2026-08-27 18:42:17",
+      "durationSec": 6496.21484375,
+      "distanceMeters": 7909.6201171875,
+      "elevationGainM": 59.0,
+      "calories": 622.0,
+      "avgHr": 95.0,
+      "maxHr": 121.0,
+      "location": "Bagnolo San Vito",
+      "embedUrl": "https://connect.garmin.com/modern/activity/embed/24140226667"
+    },
+    {
+      "activityId": 24115634568,
+      "type": "walking",
+      "name": "Bagnolo San Vito Camminata",
+      "date": "2026-08-25",
+      "startTimeLocal": "2026-08-25 18:41:10",
+      "durationSec": 5447.26513671875,
+      "distanceMeters": 7185.81005859375,
+      "elevationGainM": 62.0,
+      "calories": 526.0,
+      "avgHr": 91.0,
+      "maxHr": 117.0,
+      "location": "Bagnolo San Vito",
+      "embedUrl": "https://connect.garmin.com/modern/activity/embed/24115634568"
+    },
+    {
+      "activityId": 23819573354,
+      "type": "cycling",
+      "name": "Borgo Virgilio Ciclismo",
+      "date": "2026-08-01",
+      "startTimeLocal": "2026-08-01 23:51:51",
+      "durationSec": 2419.048095703125,
+      "distanceMeters": 7709.39013671875,
+      "elevationGainM": 30.0,
+      "calories": 300.0,
+      "avgHr": 110.0,
+      "maxHr": 137.0,
+      "location": "Borgo Virgilio",
+      "embedUrl": "https://connect.garmin.com/modern/activity/embed/23819573354"
+    },
+    {
+      "activityId": 23819572430,
+      "type": "cycling",
+      "name": "Bagnolo San Vito Ciclismo",
+      "date": "2026-08-01",
+      "startTimeLocal": "2026-08-01 20:48:56",
+      "durationSec": 2126.5390625,
+      "distanceMeters": 8034.81982421875,
+      "elevationGainM": 6.0,
+      "calories": 265.0,
+      "avgHr": 119.0,
+      "maxHr": 166.0,
+      "location": "Bagnolo San Vito",
+      "embedUrl": "https://connect.garmin.com/modern/activity/embed/23819572430"
+    }
+  ]
 }
