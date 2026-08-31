@@ -186,7 +186,7 @@ function activityCard(act){
         maxZoom: 19, attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics'
       }).addTo(map);
       const line = L.polyline(act.track, { color: '#ff3b6b', weight: 4 }).addTo(map);
-      const startIcon = L.divIcon({ className: '', html: '<div style="font-size:22px;line-height:1;transform:translate(-2px,-2px);">🟢</div>', iconSize: [22,22], iconAnchor: [11,11] });
+      const startIcon = L.divIcon({ className: '', html: '<div style="font-size:22px;line-height:1;transform:translate(-2px,-2px);">🟠</div>', iconSize: [22,22], iconAnchor: [11,11] });
       const endIcon = L.divIcon({ className: '', html: '<div style="font-size:22px;line-height:1;transform:translate(-2px,-18px);">🏁</div>', iconSize: [22,22], iconAnchor: [11,22] });
       L.marker(act.track[0], { icon: startIcon, title: 'Partenza' }).addTo(map);
       L.marker(act.track[act.track.length - 1], { icon: endIcon, title: 'Arrivo' }).addTo(map);
