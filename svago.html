@@ -90,6 +90,26 @@ let allActivities = [];
 
 function reliveKey(activityId){ return `svago_relive_${activityId}`; }
 
+const RELIVE_EMBEDLY_KEY = 'f1631a41cb254ca5b035dc5747a5bd75';
+
+function reliveEmbedUrl(shareLink){
+  // Da un link tipo https://www.relive.com/view/vXXXXXXXXX ricava l'ID e costruisce
+  // l'iframe di embed pubblico (via Embedly), che mostra il video animato vero.
+  const match = shareLink.match(/relive\.(?:com|cc)\/view\/([A-Za-z0-9_-]+)/);
+  if (!match) return null;
+  const id = match[1];
+  const viewUrl = `https://www.relive.com/view/${id}`;
+  const params = new URLSearchParams({
+    src: `${viewUrl}/widget?r=embed-site`,
+    url: `${viewUrl}?r=embed-site`,
+    image: `${viewUrl}/png?x-ref=embed-site`,
+    key: RELIVE_EMBEDLY_KEY,
+    type: 'text/html',
+    schema: 'relive',
+  });
+  return `https://cdn.embedly.com/widgets/media.html?${params.toString()}`;
+}
+
 function fmtDate(dateStr){
   if(!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
@@ -138,7 +158,16 @@ function activityCard(act){
   function renderReliveSlot(){
     const link = localStorage.getItem(reliveKey(act.activityId));
     if (link) {
-      reliveSlot.innerHTML = `<a class="relive-link" href="${link}" target="_blank" rel="noopener">▶ Guarda su Relive</a> <button class="action-edit" style="margin-left:8px;background:none;border:none;color:var(--muted);font-size:12px;text-decoration:underline;">modifica</button>`;
+      const embedUrl = reliveEmbedUrl(link);
+      reliveSlot.innerHTML = `
+        ${embedUrl
+          ? `<div style="position:relative;padding-bottom:78.2%;height:0;overflow:hidden;border-radius:10px;margin-top:10px;">
+               <iframe src="${embedUrl}" frameborder="0" scrolling="no" allowfullscreen loading="lazy"
+                 style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"></iframe>
+             </div>`
+          : `<a class="relive-link" href="${link}" target="_blank" rel="noopener">▶ Guarda su Relive</a>`
+        }
+        <button class="action-edit" style="margin-top:8px;display:block;background:none;border:none;color:var(--muted);font-size:12px;text-decoration:underline;padding:0;">rimuovi/modifica link</button>`;
       reliveSlot.querySelector('.action-edit').addEventListener('click', () => { localStorage.removeItem(reliveKey(act.activityId)); renderReliveSlot(); });
     } else {
       reliveSlot.innerHTML = `
