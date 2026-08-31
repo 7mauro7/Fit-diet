@@ -10,6 +10,8 @@
 <link rel="apple-touch-icon" href="icon-jellyroger-180.png">
 <link rel="icon" type="image/png" href="icon-jellyroger-32.png">
 <title>Svago</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
   :root{
     --bg:#0f1b1a; --surface:#16241f; --surface2:#1c2f28; --line:rgba(255,255,255,0.08);
@@ -34,6 +36,7 @@
   .card .stats{display:flex; flex-wrap:wrap; gap:14px; margin:8px 0 10px; font-size:12.5px; color:var(--muted);}
   .card .stats b{color:var(--text); font-weight:700;}
   .card iframe{width:100%; height:280px; border:0; border-radius:10px; background:var(--surface2); display:block;}
+  .card .track-map{width:100%; height:280px; border-radius:10px; background:var(--surface2); margin-top:4px;}
   .card .embed-fallback{font-size:12px; color:var(--muted); margin-top:6px;}
   .card .embed-fallback a{color:var(--accent2);}
   .relive-row{display:flex; gap:8px; margin-top:10px;}
@@ -148,12 +151,31 @@ function activityCard(act){
     </div>
     ${act.location ? `<div class="location">📍 ${act.location}</div>` : ''}
     <div class="stats">${stats.map(s => `<span>${s}</span>`).join('')}</div>
-    ${act.embedUrl ? `
-      <iframe src="${act.embedUrl}" loading="lazy" allowfullscreen></iframe>
-      <div class="embed-fallback">Se la mappa non si vede, <a href="${act.embedUrl.replace('/embed/','/')}" target="_blank" rel="noopener">aprila su Garmin Connect</a>.</div>
-    ` : ''}
+    ${act.track && act.track.length > 1
+      ? `<div class="track-map" id="map-${act.activityId}"></div>`
+      : act.embedUrl
+        ? `<iframe src="${act.embedUrl}" loading="lazy" allowfullscreen></iframe>
+           <div class="embed-fallback">Se la mappa non si vede, <a href="${act.embedUrl.replace('/embed/','/')}" target="_blank" rel="noopener">aprila su Garmin Connect</a>.</div>`
+        : ''
+    }
     <div class="relive-slot"></div>
   `;
+
+  if (act.track && act.track.length > 1) {
+    // Il contenitore deve essere già nel DOM prima che Leaflet possa calcolarne le dimensioni,
+    // quindi la mappa viene disegnata dopo che questa card è stata inserita nella pagina.
+    requestAnimationFrame(() => {
+      const mapEl = el.querySelector(`#map-${act.activityId}`);
+      if (!mapEl) return;
+      const map = L.map(mapEl, { zoomControl: false, attributionControl: true }).setView(act.track[0], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '© OpenStreetMap'
+      }).addTo(map);
+      const line = L.polyline(act.track, { color: '#4fd68a', weight: 4 }).addTo(map);
+      L.circleMarker(act.track[0], { radius: 5, color: '#7cc8ff', fillOpacity: 1 }).addTo(map);
+      map.fitBounds(line.getBounds(), { padding: [16, 16] });
+    });
+  }
 
   const reliveSlot = el.querySelector('.relive-slot');
   function renderReliveSlot(){
