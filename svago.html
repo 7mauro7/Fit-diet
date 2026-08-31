@@ -195,7 +195,7 @@ function activityCard(act){
     </div>
     ${act.location ? `<div class="location">📍 ${act.location}</div>` : ''}
     <div class="stats">${stats.map(s => `<span>${s}</span>`).join('')}</div>
-    ${act.category !== 'cardio'
+    ${(act.category !== 'cardio' && act.type !== 'lap_swimming')
       ? (act.track && act.track.length > 1
           ? `<div class="track-map" id="map-${act.activityId}"></div>`
           : act.embedUrl
@@ -206,7 +206,7 @@ function activityCard(act){
     <div class="relive-slot"></div>
   `;
 
-  if (act.category !== 'cardio' && act.track && act.track.length > 1) {
+  if (act.category !== 'cardio' && act.type !== 'lap_swimming' && act.track && act.track.length > 1) {
     // Il contenitore deve essere già nel DOM prima che Leaflet possa calcolarne le dimensioni,
     // quindi la mappa viene disegnata dopo che questa card è stata inserita nella pagina.
     requestAnimationFrame(() => {
